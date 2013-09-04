@@ -3,81 +3,11 @@ package executil
 import (
 	"bytes"
 	"errors"
-	"io"
 	"os/exec"
 	"syscall"
 )
 
-type CommandRunner struct {
-	Command *exec.Cmd
-	CapturesStdout bool
-	CapturesStderr bool
-	stdoutBuffer *bytes.Buffer
-	stderrBuffer *bytes.Buffer
-	OkExitStatuses []int
-	exitStatus int
-}
-
-func (r *CommandRunner) Run() error {
-	cmd := r.Command
-	stdoutLogger := NewLogger(Info)
-	if r.CapturesStdout {
-		var outBuf bytes.Buffer
-		r.stdoutBuffer = &outBuf
-		cmd.Stdout = io.MultiWriter(r.stdoutBuffer, stdoutLogger)
-	} else {
-		cmd.Stdout = stdoutLogger
-	}
-	stderrLogger := NewLogger(Err)
-	if r.CapturesStderr {
-		var errBuf bytes.Buffer
-		r.stderrBuffer = &errBuf
-		cmd.Stderr = io.MultiWriter(r.stderrBuffer, stderrLogger)
-	} else {
-		cmd.Stderr = stderrLogger
-	}
-
-	line := r.CommandLine()
-	stdoutLogger.Logf("run command\tcommand:%s", line)
-	err := cmd.Run()
-	if err != nil {
-		if e2, ok := err.(*exec.ExitError); ok {
-			if s, ok := e2.Sys().(syscall.WaitStatus); ok {
-				r.exitStatus = s.ExitStatus()
-			} else {
-				panic(errors.New("Unimplemented for system where exec.ExitError.Sys() is not syscall.WaitStatus."))
-			}
-		}
-	} else {
-		r.exitStatus = 0
-	}
-	if r.IsExitStatusOk() {
-		err = nil
-		stdoutLogger.Logf("done\tstatus:%d", r.exitStatus)
-	} else {
-		stderrLogger.Logf("failed\tstatus:%d", r.exitStatus)
-	}
-	return err
-}
-
-func (r *CommandRunner) StdoutOutput() string {
-	if r.CapturesStdout {
-		return r.stdoutBuffer.String()
-	} else {
-		return ""
-	}
-}
-
-func (r *CommandRunner) StderrOutput() string {
-	if r.CapturesStderr {
-		return r.stderrBuffer.String()
-	} else {
-		return ""
-	}
-}
-
-func (r *CommandRunner) CommandLine() string {
-	cmd := r.Command
+func CommandLine(cmd *exec.Cmd) string {
 	var line bytes.Buffer
 	for i, arg := range(cmd.Args) {
 		if i > 0 {
@@ -88,19 +18,44 @@ func (r *CommandRunner) CommandLine() string {
 	return line.String()
 }
 
-func (r *CommandRunner) IsExitStatusOk() bool {
-	if r.OkExitStatuses == nil {
-		return r.exitStatus == 0
+func Run(c *exec.Cmd, okExitStatuses []int) (exitStatus int, err error) {
+	if err = c.Start(); err != nil {
+		return
+	}
+	return Wait(c, okExitStatuses)
+}
+
+func Wait(cmd *exec.Cmd, okExitStatuses []int) (exitStatus int, err error) {
+	err = cmd.Wait()
+	exitStatus = getExitStatus(err)
+	if err != nil && isExitStatusOk(exitStatus, okExitStatuses) {
+		err = nil
+	}
+	return
+}
+
+func getExitStatus(waitResult error) int {
+	if waitResult != nil {
+		if err, ok := waitResult.(*exec.ExitError); ok {
+			if s, ok := err.Sys().(syscall.WaitStatus); ok {
+				return s.ExitStatus()
+			} else {
+				panic(errors.New("Unimplemented for system where exec.ExitError.Sys() is not syscall.WaitStatus."))
+			}
+		}
+	}
+	return 0
+}
+
+func isExitStatusOk(exitStatus int, okExitStatuses []int) bool {
+	if okExitStatuses == nil {
+		return exitStatus == 0
 	}
 
-	for _, s := range(r.OkExitStatuses) {
-		if s == r.exitStatus {
+	for _, s := range(okExitStatuses) {
+		if s == exitStatus {
 			return true
 		}
 	}
 	return false
-}
-
-func (r *CommandRunner) ExitStatus() int {
-	return r.exitStatus
 }
