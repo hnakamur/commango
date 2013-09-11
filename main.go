@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bytes"
 	"os/exec"
 	"strings"
 
@@ -14,27 +13,29 @@ func main() {
 
 	defer log.Flush()
 	log.Info("Commango start!")
-
-	c := exec.Command("./a.sh")
-	var outBuf bytes.Buffer
-	c.Stdout = &outBuf
-	var errBuf bytes.Buffer
-	c.Stderr = &errBuf
-
-	log.Infof("run command\tcommand:%s", executil.CommandLine(c))
-	err := c.Run()
-	exitStatus := executil.GetExitStatus(err)
-	failed := exitStatus != 0 // && exitStatus != 1
-	if failed {
-		InfofLines("%s\tout:stdout", outBuf.String())
-		WarnfLines("%s\tout:stderr", errBuf.String())
-		log.Errorf("failed\trc:%d", exitStatus)
-	} else {
-		InfofLines("%s\tout:stdout", outBuf.String())
-		InfofLines("%s\tout:stderr", errBuf.String())
-		log.Infof("done\trc:%d", exitStatus)
-	}
+	RunCommand("./a.sh")
 	log.Info("Commango finished!")
+}
+
+func RunCommand(name string, arg ...string) bool {
+	cmd := exec.Command(name, arg...)
+	log.Infof("run command\tcommand:%s", executil.CommandLine(cmd))
+	r, err := executil.Run(cmd)
+	failed := r.Rc != 0 && r.Rc != 1
+	if err != nil && !executil.IsExitError(err) {
+		InfofLines("%s\tout:stdout", r.Out.String())
+		WarnfLines("%s\tout:stderr", r.Err.String())
+		log.Errorf("failed\terr:%s", err)
+	} else if failed {
+		InfofLines("%s\tout:stdout", r.Out.String())
+		WarnfLines("%s\tout:stderr", r.Err.String())
+		log.Errorf("failed\trc:%d\terr:%s", r.Rc, err)
+	} else {
+		InfofLines("%s\tout:stdout", r.Out.String())
+		InfofLines("%s\tout:stderr", r.Err.String())
+		log.Infof("done\trc:%d", r.Rc)
+	}
+	return failed
 }
 
 func WarnfLines(format, text string) {
