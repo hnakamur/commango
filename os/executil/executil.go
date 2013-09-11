@@ -18,23 +18,7 @@ func CommandLine(cmd *exec.Cmd) string {
 	return line.String()
 }
 
-func Run(c *exec.Cmd, okExitStatuses []int) (exitStatus int, err error) {
-	if err = c.Start(); err != nil {
-		return
-	}
-	return Wait(c, okExitStatuses)
-}
-
-func Wait(cmd *exec.Cmd, okExitStatuses []int) (exitStatus int, err error) {
-	err = cmd.Wait()
-	exitStatus = getExitStatus(err)
-	if err != nil && isExitStatusOk(exitStatus, okExitStatuses) {
-		err = nil
-	}
-	return
-}
-
-func getExitStatus(waitResult error) int {
+func GetExitStatus(waitResult error) int {
 	if waitResult != nil {
 		if err, ok := waitResult.(*exec.ExitError); ok {
 			if s, ok := err.Sys().(syscall.WaitStatus); ok {
@@ -45,17 +29,4 @@ func getExitStatus(waitResult error) int {
 		}
 	}
 	return 0
-}
-
-func isExitStatusOk(exitStatus int, okExitStatuses []int) bool {
-	if okExitStatuses == nil {
-		return exitStatus == 0
-	}
-
-	for _, s := range(okExitStatuses) {
-		if s == exitStatus {
-			return true
-		}
-	}
-	return false
 }
