@@ -21,17 +21,6 @@ func Run(cmd *exec.Cmd) (result Result, err error) {
 	return
 }
 
-func CommandLine(cmd *exec.Cmd) string {
-	var line bytes.Buffer
-	for i, arg := range cmd.Args {
-		if i > 0 {
-			line.WriteByte(' ')
-		}
-		line.WriteString(arg)
-	}
-	return line.String()
-}
-
 func IsExitError(err error) bool {
 	_, ok := err.(*exec.ExitError)
 	return ok

@@ -13,13 +13,19 @@ func main() {
 
 	defer log.Flush()
 	log.Info("Commango start!")
-	RunCommand("./a.sh")
+	//RunCommand("./a.sh")
+	RunCommand("touch", "foo bar")
 	log.Info("Commango finished!")
 }
 
 func RunCommand(name string, arg ...string) bool {
 	cmd := exec.Command(name, arg...)
-	log.Infof("run command\tcommand:%s", executil.CommandLine(cmd))
+	s, err := executil.FormatCommand(cmd)
+	if err != nil {
+		log.Errorf("failed\terr:%s", err)
+		return true
+	}
+	log.Infof("run command\tcommand:%s", s)
 	r, err := executil.Run(cmd)
 	failed := r.Rc != 0 && r.Rc != 1
 	if err != nil && !executil.IsExitError(err) {
