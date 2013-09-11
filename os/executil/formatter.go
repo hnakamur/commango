@@ -2,9 +2,11 @@ package executil
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"io"
 	"os/exec"
+	"unicode/utf8"
 )
 
 func FormatCommand(cmd *exec.Cmd) (string, error) {
@@ -29,7 +31,9 @@ func WriteWord(output *bytes.Buffer, word string) error {
 
 type escaper struct {
 	input      string
-	scanner    io.RuneScanner
+	start      int
+	pos        int
+	width      int
 	output     *bytes.Buffer
 	state      stateFn
 	quoteStack runeStack
@@ -41,7 +45,6 @@ type stateFn func(*escaper) stateFn
 func newEscaper(input string, output *bytes.Buffer) *escaper {
 	return &escaper{
 		input:   input,
-		scanner: bytes.NewReader([]byte(input)),
 		output:  output,
 	}
 }
@@ -54,11 +57,23 @@ func (e *escaper) run() error {
 }
 
 func (e *escaper) readRune() (r rune, size int, err error) {
-	return e.scanner.ReadRune()
+	if e.pos >= len(e.input) {
+		e.width = 0
+		err = io.EOF
+		return
+	}
+	r, size = utf8.DecodeRuneInString(e.input[e.pos:])
+	e.width = size
+	e.pos += size
+	return
 }
 
 func (e *escaper) unreadRune() error {
-	return e.scanner.UnreadRune()
+	if e.pos <= e.start {
+		return errors.New("cannot unreadRune()")
+	}
+	e.pos -= e.width
+	return nil
 }
 
 func (e *escaper) writeRune(r rune) (n int, err error) {
