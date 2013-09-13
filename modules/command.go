@@ -10,22 +10,31 @@ type CommandModule struct {
 	dummy string
 }
 
-func (c *CommandModule) Main(arg ...string) (ResultJson, error) {
+type CommandResult struct {
+	*ModuleResult
+	Cmd    string `json:"cmd"`
+	Rc     int    `json:"rc"`
+	Stdout string `json:"stdout"`
+	Stderr string `json:"stderr"`
+}
+
+func (c CommandModule) Main(arg ...string) (interface{}, error) {
 	cmd := exec.Command(arg[0], arg[1:]...)
 	r, err := executil.Run(cmd)
 
-	rj := ResultJson{}
-	rj["cmd"] = executil.CommandLine(cmd)
+	var mr ModuleResult
+	cr := CommandResult{ModuleResult: &mr}
+	cr.Cmd, _ = executil.FormatCommand(cmd)
 	if err == nil || executil.IsExitError(err) {
-		rj["rc"] = r.Rc
-		rj["stdout"] = r.Out.String()
-		rj["stderr"] = r.Err.String()
+		cr.Rc = r.Rc
+		cr.Stdout = r.Out.String()
+		cr.Stderr = r.Err.String()
 		failed := r.Rc != 0
-		rj["failed"] = failed
+		cr.Failed = failed
 	} else {
-		rj["failed"] = true
-		rj["err"] = err.Error()
+		cr.Failed = true
+		cr.Err = err
 	}
-	rj["changed"] = true
-	return rj, err
+	cr.Changed = true
+	return cr, err
 }
