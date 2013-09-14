@@ -40,7 +40,7 @@ func Chmod(path string, mode os.FileMode, recursive bool) (result modules.Result
 	if len(oldModes) == 1 {
 		oldMode := oldModes[0]
 
-		if mode == oldMode {
+		if modeStr == oldMode {
 			return
 		}
 	}
@@ -58,7 +58,7 @@ func Chmod(path string, mode os.FileMode, recursive bool) (result modules.Result
 	return
 }
 
-func getModes(path string, recursive bool) ([]os.FileMode, error) {
+func getModes(path string, recursive bool) ([]string, error) {
 	var args []string
 	if recursive {
 		args = []string{"find", path, "-printf", "%m\\n"}
@@ -74,22 +74,6 @@ func getModes(path string, recursive bool) ([]os.FileMode, error) {
 	result.Log()
 	modules.ExitOnError(err)
 
-	lines := stringutil.Uniq(strings.Split(strings.TrimRight(result.Stdout, "\n"), "\n"))
-	modes := make([]os.FileMode, len(lines))
-	for i, line := range(lines) {
-		modes[i], err = scanMode(line)
-		if err != nil {
-			break
-		}
-	}
-	return modes, err
-}
-
-func scanMode(str string) (mode os.FileMode, err error) {
-	n, err := fmt.Sscanf(str, "%o", &mode)
-	if err == nil && n != 1 {
-		err = fmt.Errorf("scanMode should get one octal number, but got %d numbers from %s",
-			n, str)
-	}
-	return
+	lines := strings.Split(strings.TrimRight(result.Stdout, "\n"), "\n")
+	return stringutil.Uniq(lines), err
 }

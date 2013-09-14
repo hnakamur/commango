@@ -42,7 +42,7 @@ func main() {
 	modules.EnableExitOnError()
 
 	directory.Exists("/tmp/foo/bar")
-	directory.EnsureExists("/tmp/foo/bar", 0755)
+	//directory.EnsureExists("/tmp/foo/bar", 0755)
 	file.Chown("/tmp/foo", "vagrant:vagrant", true)
 	file.Chmod("/tmp/foo", 0755, true)
 	//directory.EnsureRemoved("/tmp/foo")
