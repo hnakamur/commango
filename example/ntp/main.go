@@ -3,6 +3,7 @@ package main
 import (
 	log "github.com/cihub/seelog"
 	"github.com/hnakamur/commango/modules"
+	"github.com/hnakamur/commango/modules/file"
 	"github.com/hnakamur/commango/modules/directory"
 	"github.com/hnakamur/commango/modules/redhat/service"
 	"github.com/hnakamur/commango/modules/redhat/yum"
@@ -41,8 +42,9 @@ func main() {
 	modules.EnableExitOnError()
 
 	directory.Exists("/tmp/foo/bar")
-	//directory.EnsureExists("/tmp/foo/bar", 0755)
-	directory.EnsureRemoved("/tmp/foo")
+	directory.EnsureExists("/tmp/foo/bar", 0755)
+	file.EnsureLchown("/tmp/foo/bar", "vagrant:vagrant")
+	//directory.EnsureRemoved("/tmp/foo")
 	yum.EnsureInstalled("ntp")
 	service.EnsureStarted("ntpd")
 	service.EnsureAutoStartEnabled("ntpd")
