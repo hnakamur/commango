@@ -95,10 +95,12 @@ func (r *Result) ToJSON() map[string]interface{} {
 	obj["start"] = FormatTime(r.StartTime)
 	obj["end"] = FormatTime(r.EndTime)
 	obj["delta"] = FormatDuration(r.Delta())
-	obj["cmd"] = r.Command
-	obj["rc"] = r.Rc
-	obj["stdout"] = r.Stdout
-	obj["stderr"] = r.Stderr
+	if r.Command != "" {
+		obj["cmd"] = r.Command
+		obj["rc"] = r.Rc
+		obj["stdout"] = r.Stdout
+		obj["stderr"] = r.Stderr
+	}
 	return obj
 }
 
