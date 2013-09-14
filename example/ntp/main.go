@@ -43,7 +43,7 @@ func main() {
 
 	directory.Exists("/tmp/foo/bar")
 	directory.EnsureExists("/tmp/foo/bar", 0755)
-	file.EnsureLchown("/tmp/foo/bar", "vagrant:vagrant", false)
+	file.Chown("/tmp/foo/bar", "vagrant:vagrant", false)
 	//directory.EnsureRemoved("/tmp/foo")
 	yum.EnsureInstalled("ntp")
 	service.EnsureStarted("ntpd")

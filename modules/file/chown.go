@@ -7,7 +7,7 @@ import (
 	"github.com/hnakamur/commango/modules/command"
 )
 
-func EnsureLchown(path, owner string, recursive bool) (result modules.Result, err error) {
+func Chown(path, owner string, recursive bool) (result modules.Result, err error) {
 	oldOwner, err := getOwner(path)
 	if err != nil {
 		return
@@ -16,7 +16,7 @@ func EnsureLchown(path, owner string, recursive bool) (result modules.Result, er
 	result.RecordStartTime()
 	defer func() {
 		extra := make(map[string]interface{})
-		extra["op"] = "lchown"
+		extra["op"] = "chown"
 		extra["path"] = path
 		extra["owner"] = owner
 		extra["old_owner"] = oldOwner
