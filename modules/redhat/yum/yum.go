@@ -29,3 +29,12 @@ func Install(name string) (result modules.Result, err error) {
 	}
 	return
 }
+
+func EnsureInstalled(name string) (result modules.Result, err error) {
+	installed, err := Installed(name)
+	if installed || err != nil {
+		return
+	}
+
+	return Install(name)
+}

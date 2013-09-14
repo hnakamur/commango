@@ -39,18 +39,7 @@ func main() {
 	configLogger()
 	modules.EnableExitOnError()
 
-	installed, _ := yum.Installed("ntp")
-	if !installed {
-		yum.Install("ntp")
-	}
-
-	status, _ := service.Status("ntpd")
-	if status == service.STOPPED {
-		service.Start("ntpd")
-	}
-
-	enabled, _ := service.AutoStartEnabled("ntpd")
-	if !enabled {
-		service.EnableAutoStart("ntpd")
-	}
+	yum.EnsureInstalled("ntp")
+	service.EnsureStarted("ntpd")
+	service.EnsureAutoStartEnabled("ntpd")
 }

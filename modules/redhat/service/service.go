@@ -43,6 +43,15 @@ func Reload(name string) (result modules.Result, err error) {
 	return modules.Command("service", name, "reload")
 }
 
+func EnsureStarted(name string) (result modules.Result, err error) {
+	status, err := Status(name)
+	if status == STARTED || err != nil {
+		return
+	}
+
+	return Start(name)
+}
+
 func AutoStartEnabled(name string) (enabled bool, err error) {
 	result, err := modules.CommandNoLog("chkconfig", name, "--list")
 	enabled = strings.Contains(result.Stdout, "\t2:on\t")
@@ -58,4 +67,13 @@ func EnableAutoStart(name string) (result modules.Result, err error) {
 
 func DisableAutoStart(name string) (result modules.Result, err error) {
 	return modules.Command("chkconfig", name, "off")
+}
+
+func EnsureAutoStartEnabled(name string) (result modules.Result, err error) {
+	enabled, err := AutoStartEnabled(name)
+	if enabled || err != nil {
+		return
+	}
+
+	return EnableAutoStart(name)
 }
