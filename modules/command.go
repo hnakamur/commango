@@ -6,35 +6,27 @@ import (
 	"github.com/hnakamur/commango/os/executil"
 )
 
-type CommandModule struct {
-	dummy string
-}
+type CommandModule struct {}
 
-type CommandResult struct {
-	*ModuleResult
-	Cmd    string `json:"cmd"`
-	Rc     int    `json:"rc"`
-	Stdout string `json:"stdout"`
-	Stderr string `json:"stderr"`
-}
+func (c CommandModule) Main(arg ...string) (result Result, err error) {
+	result.RecordStartTime()
+	defer result.RecordEndTime()
 
-func (c CommandModule) Main(arg ...string) (interface{}, error) {
 	cmd := exec.Command(arg[0], arg[1:]...)
 	r, err := executil.Run(cmd)
 
-	var mr ModuleResult
-	cr := CommandResult{ModuleResult: &mr}
-	cr.Cmd, _ = executil.FormatCommand(cmd)
+	extra := make(map[string]interface{})
+	result.Extra = extra
+	extra["cmd"], _ = executil.FormatCommand(cmd)
 	if err == nil || executil.IsExitError(err) {
-		cr.Rc = r.Rc
-		cr.Stdout = r.Out.String()
-		cr.Stderr = r.Err.String()
-		failed := r.Rc != 0
-		cr.Failed = failed
+		extra["rc"] = r.Rc
+		extra["stdout"] = r.Out.String()
+		extra["stderr"] = r.Err.String()
+		result.Failed = r.Rc != 0
 	} else {
-		cr.Failed = true
-		cr.Err = err
+		result.Failed = true
+		result.Err = err
 	}
-	cr.Changed = true
-	return cr, err
+	result.Changed = true
+	return result, err
 }

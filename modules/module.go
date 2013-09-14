@@ -1,65 +1,69 @@
 package modules
 
 import (
-	"errors"
+	"encoding/json"
 	"fmt"
 	"time"
 )
 
-type ResultJson map[string]interface{}
-
-type ModuleResult struct {
-	Failed  bool     `json:"failed"`
-	Changed bool     `json:"changed"`
-	Err     error    `json:"err",omitempty`
-	Start   Time     `json:"start"`
-	End     Time     `json:"end"`
-	Delta   Duration `json:"delta"`
+type Result struct {
+	Failed    bool
+	Changed   bool
+	Err       error
+	StartTime time.Time
+	EndTime   time.Time
+	Extra     map[string]interface{}
 }
 
-type Time time.Time
-
-func (t Time) MarshalJSON() ([]byte, error) {
-	return []byte("\"" + time.Time(t).Format(TIME_FORMAT) + "\""), nil
+func (r *Result) RecordStartTime() {
+	r.StartTime = time.Now()
 }
 
-type Duration time.Duration
+func (r *Result) RecordEndTime() {
+	r.EndTime = time.Now()
+}
 
-func (d Duration) MarshalJSON() ([]byte, error) {
-	return []byte("\"" + formatDuration(time.Duration(d)) + "\""), nil
+func (r *Result) Delta() time.Duration {
+	return r.EndTime.Sub(r.StartTime)
+}
+
+func (r *Result) ToJSON() map[string]interface{} {
+	obj := make(map[string]interface{})
+	if r.Extra != nil {
+		for k, v := range(r.Extra) {
+			obj[k] = v
+		}
+	}
+	obj["failed"] = r.Failed
+	obj["changed"] = r.Changed
+	if r.Err != nil {
+		obj["err"] = r.Err.Error()
+	}
+	obj["start"] = FormatTime(r.StartTime)
+	obj["end"] = FormatTime(r.EndTime)
+	obj["delta"] = FormatDuration(r.Delta())
+	return obj
+}
+
+func (r Result) MarshalJSON() ([]byte, error) {
+	return json.Marshal(r.ToJSON())
 }
 
 type Module interface {
-	Main(arg ...string) (interface{}, error)
+	Main(arg ...string) (Result, error)
 }
 
-type Runner struct{}
-
-func (r *Runner) Run(m Module, arg ...string) (interface{}, error) {
-	start := time.Now()
-
-	result, err := m.Main(arg...)
-	mr, ok := result.(ModuleResult)
-	if !ok {
-		return nil, errors.New("ModeResult expected")
-	}
-
-	end := time.Now()
-	delta := end.Sub(start)
-
-	mr.Start = Time(start)
-	mr.End = Time(end)
-	mr.Delta = Duration(delta)
-	return mr, err
+func Run(m Module, arg ...string) (Result, error) {
+	return m.Main(arg...)
 }
 
 const TIME_FORMAT = "2006-01-02 15:04:05.00000"
 
-func formatTime(t time.Time) string {
+func FormatTime(t time.Time) string {
 	return t.Format(TIME_FORMAT)
 }
 
-func formatDuration(d time.Duration) string {
+func FormatDuration(d time.Duration) string {
 	sign := ""
 	if d < 0 {
 		d = -d
