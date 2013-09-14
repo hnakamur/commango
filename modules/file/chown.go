@@ -9,7 +9,7 @@ import (
 )
 
 func Chown(path, owner string, recursive bool) (result modules.Result, err error) {
-	oldOwner, err := getOwner(path, recursive)
+	oldOwners, err := getOwners(path, recursive)
 	if err != nil {
 		return
 	}
@@ -20,7 +20,7 @@ func Chown(path, owner string, recursive bool) (result modules.Result, err error
 		extra["op"] = "chown"
 		extra["path"] = path
 		extra["owner"] = owner
-		extra["old_owner"] = oldOwner
+		extra["old_owner"] = oldOwners
 		result.Extra = extra
 
 		result.RecordEndTime()
@@ -33,10 +33,10 @@ func Chown(path, owner string, recursive bool) (result modules.Result, err error
 		modules.ExitOnError(err)
 	}()
 
-	if len(oldOwner) == 1 {
-		index := strings.Index(oldOwner[0], ":")
-		oldUsername := oldOwner[0][:index]
-		oldGroupname := oldOwner[0][index+1:]
+	if len(oldOwners) == 1 {
+		index := strings.Index(oldOwners[0], ":")
+		oldUsername := oldOwners[0][:index]
+		oldGroupname := oldOwners[0][index+1:]
 
 		var username, groupname string
 		index = strings.IndexAny(owner, ".:")
@@ -66,7 +66,7 @@ func Chown(path, owner string, recursive bool) (result modules.Result, err error
 	return
 }
 
-func getOwner(path string, recursive bool) ([]string, error) {
+func getOwners(path string, recursive bool) ([]string, error) {
 	var args []string
 	if recursive {
 		args = []string{"find", path, "-printf", "%u:%g\\n"}
