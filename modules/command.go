@@ -6,7 +6,7 @@ import (
 	"github.com/hnakamur/commango/os/executil"
 )
 
-func Command(arg ...string) (result Result, err error) {
+func CommandNoLog(arg ...string) (result Result, err error) {
 	result.RecordStartTime()
 	defer result.RecordEndTime()
 
@@ -18,5 +18,11 @@ func Command(arg ...string) (result Result, err error) {
 
 	r, err := executil.Run(cmd)
 	result.SetExecResult(&r, err)
+	return
+}
+
+func Command(arg ...string) (result Result, err error) {
+	result, err = CommandNoLog(arg...)
+	result.Log()
 	return
 }

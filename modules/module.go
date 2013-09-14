@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"time"
 
+	log "github.com/cihub/seelog"
+	"github.com/hnakamur/commango/jsonutil"
 	"github.com/hnakamur/commango/os/executil"
 )
 
@@ -44,6 +46,19 @@ func (r *Result) SetExecResult(result *executil.Result, err error) {
 		r.Failed = true
 	}
 	r.Changed = true
+}
+
+func (r *Result) Log() {
+	json, err := jsonutil.Encode(r)
+	if err != nil {
+		log.Error(err)
+	}
+
+	if r.Failed {
+		log.Error(json)
+	} else {
+		log.Info(json)
+	}
 }
 
 func (r *Result) ToJSON() map[string]interface{} {

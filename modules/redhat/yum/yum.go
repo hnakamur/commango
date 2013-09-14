@@ -6,13 +6,18 @@ import (
 	"github.com/hnakamur/commango/modules"
 )
 
-func Installed(name string) (result modules.Result, err error) {
-	result, err = modules.Command("rpm", "-q", name)
-	if result.Rc == 1 {
+func Installed(name string) (installed bool, err error) {
+	result, err := modules.CommandNoLog("rpm", "-q", name)
+	if result.Rc == 0 {
+		installed = true
+	} else if result.Rc == 1 {
+		installed = false
         result.Err = nil
         err = nil
+		result.Failed = false
     }
 	result.Changed = false
+	result.Log()
 	return
 }
 

@@ -1,17 +1,28 @@
 package service
 
 import (
+	"strings"
+
 	"github.com/hnakamur/commango/modules"
 )
 
-func Status(name string) (result modules.Result, err error) {
-	result, err = modules.Command("service", name, "status")
+const (
+	STARTED = "started"
+	STOPPED = "stopped"
+)
+
+func Status(name string) (status string, err error) {
+	result, err := modules.CommandNoLog("service", name, "status")
 	if result.Rc == 3 {
+		status = STOPPED
 		result.Err = nil
 		err = nil
 		result.Failed = false
+	} else if result.Rc == 0 {
+		status = STARTED
 	}
 	result.Changed = false
+	result.Log()
 	return
 }
 
@@ -31,14 +42,11 @@ func Reload(name string) (result modules.Result, err error) {
 	return modules.Command("service", name, "reload")
 }
 
-func AutoStartEnabled(name string) (result modules.Result, err error) {
-	result, err = modules.Command("sh", "-c", "chkconfig "+name+" --list | grep -q 2:on")
-	if result.Rc == 1 {
-		result.Err = nil
-		err = nil
-		result.Failed = false
-	}
+func AutoStartEnabled(name string) (enabled bool, err error) {
+	result, err := modules.CommandNoLog("chkconfig", name, "--list")
+    enabled = strings.Contains(result.Stdout, "\t2:on\t")
 	result.Changed = false
+	result.Log()
 	return
 }
 
