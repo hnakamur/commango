@@ -31,16 +31,15 @@ func TestNotInstalled(t *testing.T) {
 }
 
 func TestInstallGroup(t *testing.T) {
-	result, err := Install(`@'Development tools'`)
+	result, err := Install("@'Development tools'")
 	if err != nil {
 		t.Fatal(err)
 	}
 
-    json, err := jsonutil.Encode(result)
+    _, err = jsonutil.Encode(result)
 	if err != nil {
 		t.Fatal(err)
 	}
-    t.Error(json)
 }
 
 func TestInstall(t *testing.T) {
@@ -49,9 +48,8 @@ func TestInstall(t *testing.T) {
 		t.Fatal(err)
 	}
 
-    json, err := jsonutil.Encode(result)
+    _, err = jsonutil.Encode(result)
 	if err != nil {
 		t.Fatal(err)
 	}
-    t.Error(json)
 }
