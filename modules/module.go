@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"time"
+
+	"github.com/hnakamur/commango/os/executil"
 )
 
 type Result struct {
@@ -12,6 +14,10 @@ type Result struct {
 	Err       error
 	StartTime time.Time
 	EndTime   time.Time
+	Command   string
+	Rc        int
+	Stdout    string
+	Stderr    string
 	Extra     map[string]interface{}
 }
 
@@ -27,10 +33,23 @@ func (r *Result) Delta() time.Duration {
 	return r.EndTime.Sub(r.StartTime)
 }
 
+func (r *Result) SetExecResult(result *executil.Result, err error) {
+	r.Err = err
+	if err == nil || executil.IsExitError(err) {
+		r.Rc = result.Rc
+		r.Stdout = result.Out.String()
+		r.Stderr = result.Err.String()
+		r.Failed = result.Rc != 0
+	} else {
+		r.Failed = true
+	}
+	r.Changed = true
+}
+
 func (r *Result) ToJSON() map[string]interface{} {
 	obj := make(map[string]interface{})
 	if r.Extra != nil {
-		for k, v := range(r.Extra) {
+		for k, v := range r.Extra {
 			obj[k] = v
 		}
 	}
@@ -42,6 +61,10 @@ func (r *Result) ToJSON() map[string]interface{} {
 	obj["start"] = FormatTime(r.StartTime)
 	obj["end"] = FormatTime(r.EndTime)
 	obj["delta"] = FormatDuration(r.Delta())
+	obj["cmd"] = r.Command
+	obj["rc"] = r.Rc
+	obj["stdout"] = r.Stdout
+	obj["stderr"] = r.Stderr
 	return obj
 }
 
