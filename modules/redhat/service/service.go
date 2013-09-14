@@ -44,7 +44,7 @@ func Reload(name string) (result modules.Result, err error) {
 
 func AutoStartEnabled(name string) (enabled bool, err error) {
 	result, err := modules.CommandNoLog("chkconfig", name, "--list")
-    enabled = strings.Contains(result.Stdout, "\t2:on\t")
+	enabled = strings.Contains(result.Stdout, "\t2:on\t")
 	result.Changed = false
 	result.Log()
 	return

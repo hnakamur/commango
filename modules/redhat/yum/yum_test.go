@@ -12,7 +12,7 @@ func TestInstalled(t *testing.T) {
 		t.Fatal(err)
 	}
 
-    _, err = jsonutil.Encode(result)
+	_, err = jsonutil.Encode(result)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -24,7 +24,7 @@ func TestNotInstalled(t *testing.T) {
 		t.Fatal(err)
 	}
 
-    _, err = jsonutil.Encode(result)
+	_, err = jsonutil.Encode(result)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -36,7 +36,7 @@ func TestInstallGroup(t *testing.T) {
 		t.Fatal(err)
 	}
 
-    _, err = jsonutil.Encode(result)
+	_, err = jsonutil.Encode(result)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -48,7 +48,7 @@ func TestInstall(t *testing.T) {
 		t.Fatal(err)
 	}
 
-    _, err = jsonutil.Encode(result)
+	_, err = jsonutil.Encode(result)
 	if err != nil {
 		t.Fatal(err)
 	}

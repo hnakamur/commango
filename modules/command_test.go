@@ -33,9 +33,9 @@ func TestCommand(t *testing.T) {
 func TestCommandError(t *testing.T) {
 	result, err := Command("sh", "-c", "exit 1")
 	if err == nil {
-        t.Fatal("expected err is not nil")
-    }
-    if result.Rc != 1 {
-        t.Fatal("expected Rc is 1, got %d", result.Rc)
+		t.Fatal("expected err is not nil")
+	}
+	if result.Rc != 1 {
+		t.Fatal("expected Rc is 1, got %d", result.Rc)
 	}
 }

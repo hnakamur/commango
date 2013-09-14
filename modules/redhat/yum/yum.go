@@ -12,10 +12,10 @@ func Installed(name string) (installed bool, err error) {
 		installed = true
 	} else if result.Rc == 1 {
 		installed = false
-        result.Err = nil
-        err = nil
+		result.Err = nil
+		err = nil
 		result.Failed = false
-    }
+	}
 	result.Changed = false
 	result.Log()
 	return
@@ -23,8 +23,8 @@ func Installed(name string) (installed bool, err error) {
 
 func Install(name string) (result modules.Result, err error) {
 	result, err = modules.Command("yum", "install", "-d", "2", "-y", name)
-    if strings.Contains(result.Stdout, "\nNothing to do\n") {
-        result.Changed = false
-    }
+	if strings.Contains(result.Stdout, "\nNothing to do\n") {
+		result.Changed = false
+	}
 	return
 }
