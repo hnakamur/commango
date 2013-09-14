@@ -24,6 +24,10 @@ func CommandNoLog(arg ...string) (result modules.Result, err error) {
 
 func Command(arg ...string) (result modules.Result, err error) {
 	result, err = CommandNoLog(arg...)
+	if err != nil {
+		result.Err = err
+		result.Failed = true
+	}
 	result.Log()
 	modules.ExitOnError(err)
 	return
