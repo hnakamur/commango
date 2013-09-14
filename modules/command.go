@@ -6,9 +6,7 @@ import (
 	"github.com/hnakamur/commango/os/executil"
 )
 
-type CommandModule struct {}
-
-func (c CommandModule) Main(arg ...string) (result Result, err error) {
+func Command(arg ...string) (result Result, err error) {
 	result.RecordStartTime()
 	defer result.RecordEndTime()
 

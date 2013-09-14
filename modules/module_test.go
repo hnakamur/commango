@@ -7,19 +7,6 @@ import (
 	"github.com/hnakamur/commango/jsonutil"
 )
 
-func TestRun(t *testing.T) {
-	var cm CommandModule
-	result, err := Run(cm, "uname", "-a")
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	_, err = jsonutil.Encode(result)
-	if err != nil {
-		t.Fatal(err)
-	}
-}
-
 func TestEncodeJson(t *testing.T) {
 	start := time.Now()
 	time.Sleep(123 * time.Millisecond)

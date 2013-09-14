@@ -49,14 +49,6 @@ func (r Result) MarshalJSON() ([]byte, error) {
 	return json.Marshal(r.ToJSON())
 }
 
-type Module interface {
-	Main(arg ...string) (Result, error)
-}
-
-func Run(m Module, arg ...string) (Result, error) {
-	return m.Main(arg...)
-}
-
 const TIME_FORMAT = "2006-01-02 15:04:05.00000"
 
 func FormatTime(t time.Time) string {

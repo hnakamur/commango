@@ -7,8 +7,7 @@ import (
 )
 
 func TestCommand(t *testing.T) {
-	var cm CommandModule
-	result, err := cm.Main("uname", "-a")
+	result, err := Command("uname", "-a")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -20,8 +19,7 @@ func TestCommand(t *testing.T) {
 }
 
 func TestCommandError(t *testing.T) {
-	var cm CommandModule
-	_, err := cm.Main("sh", "-c", "exit 1")
+	_, err := Command("sh", "-c", "exit 1")
 	if err == nil {
 		t.Fatal("command should failed, but not")
 	}
