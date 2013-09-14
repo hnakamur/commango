@@ -88,7 +88,6 @@ func scanText(e *escaper) stateFn {
 	switch r {
 	case ' ':
 		e.writeRune('\\')
-		e.writeRune('\\')
 		e.writeRune(r)
 		return scanText
 	case '"', '\'':
@@ -96,7 +95,7 @@ func scanText(e *escaper) stateFn {
 		e.writeRune(r)
 		return scanInsideQuote
 	case '\\':
-		e.writeRune(r)
+		e.writeRune('\\')
 		r, _, err = e.readRune()
 		if err == io.EOF {
 			e.err = fmt.Errorf("character needed after backslash: %s.", e.input)
