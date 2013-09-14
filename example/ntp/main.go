@@ -13,7 +13,10 @@ func configLogger() {
 	config := `
 <seelog type="sync">
 	<outputs>
-		<filter levels="trace,debug">
+		<filter levels="trace">
+			<console formatid="skipped"/>
+		</filter>
+		<filter levels="debug">
 			<console formatid="unchanged"/>
 		</filter>
 		<filter levels="info">
@@ -24,9 +27,10 @@ func configLogger() {
 		</filter>
 	</outputs>
 	<formats>
+		<format id="error" format="%EscM(31)%Msg%EscM(0)%n"/>
 		<format id="plain" format="%Msg%n"/>
 		<format id="unchanged" format="%EscM(32)%Msg%EscM(0)%n"/>
-		<format id="error" format="%EscM(31)%Msg%EscM(0)%n"/>
+		<format id="skipped" format="%EscM(34)%Msg%EscM(0)%n"/>
 	</formats>
 </seelog>`
 

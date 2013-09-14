@@ -49,6 +49,7 @@ func Chown(path, owner string, recursive bool) (result modules.Result, err error
 
 		if (username == "" || username == oldUsername) &&
 			(groupname == "" || groupname == oldGroupname) {
+			result.Skipped = true
 			return
 		}
 	}

@@ -41,6 +41,7 @@ func Chmod(path string, mode os.FileMode, recursive bool) (result modules.Result
 		oldMode := oldModes[0]
 
 		if modeStr == oldMode {
+			result.Skipped = true
 			return
 		}
 	}

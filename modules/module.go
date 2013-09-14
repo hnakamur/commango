@@ -28,6 +28,7 @@ func ExitOnError(err error) {
 }
 
 type Result struct {
+	Skipped   bool
 	Failed    bool
 	Changed   bool
 	Err       error
@@ -62,6 +63,7 @@ func (r *Result) SetExecResult(result *executil.Result, err error) {
 	} else {
 		r.Failed = true
 	}
+	r.Skipped = false
 	r.Changed = true
 }
 
@@ -75,8 +77,10 @@ func (r *Result) Log() {
 		log.Error(json)
 	} else if r.Changed {
 		log.Info(json)
-	} else {
+	} else if !r.Skipped {
 		log.Debug(json)
+	} else {
+		log.Trace(json)
 	}
 }
 
@@ -87,6 +91,7 @@ func (r *Result) ToJSON() map[string]interface{} {
 			obj[k] = v
 		}
 	}
+	obj["skipped"] = r.Skipped
 	obj["failed"] = r.Failed
 	obj["changed"] = r.Changed
 	if r.Err != nil {

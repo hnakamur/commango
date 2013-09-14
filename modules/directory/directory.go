@@ -61,9 +61,11 @@ func EnsureExists(path string, perm os.FileMode) (err error) {
 	}
 
 	result.RecordStartTime()
+	result.Skipped = true
 	fi, err := os.Lstat(path)
 	if err != nil {
 		if isNoSuchFileOrDirectory(err) {
+			result.Skipped = false
 			err = os.MkdirAll(path, perm)
 			if err == nil {
 				result.Changed = true
@@ -105,6 +107,7 @@ func EnsureRemoved(path string) (err error) {
 	}
 
 	result.RecordStartTime()
+	result.Skipped = true
 	fi, err := os.Lstat(path)
 	if err != nil {
 		if isNoSuchFileOrDirectory(err) {
@@ -112,6 +115,7 @@ func EnsureRemoved(path string) (err error) {
 		}
 	} else {
 		if fi.IsDir() {
+			result.Skipped = false
 			err = os.RemoveAll(path)
 			if err == nil {
 				extra["msg"] = "removed"
