@@ -2,6 +2,7 @@ package main
 
 import (
 	log "github.com/cihub/seelog"
+	"github.com/hnakamur/commango/modules"
 	"github.com/hnakamur/commango/modules/redhat/service"
 	"github.com/hnakamur/commango/modules/redhat/yum"
 )
@@ -10,7 +11,10 @@ func configLogger() {
 	config := `
 <seelog type="sync">
 	<outputs>
-		<filter levels="trace,debug,info">
+		<filter levels="trace,debug">
+			<console formatid="unchanged"/>
+		</filter>
+		<filter levels="info">
 			<console formatid="plain"/>
 		</filter>
 		<filter levels="warn,error,critical">
@@ -18,7 +22,8 @@ func configLogger() {
 		</filter>
 	</outputs>
 	<formats>
-		<format id="plain" format="%EscM(32)%Msg%EscM(0)%n"/>
+		<format id="plain" format="%Msg%n"/>
+		<format id="unchanged" format="%EscM(32)%Msg%EscM(0)%n"/>
 		<format id="error" format="%EscM(31)%Msg%EscM(0)%n"/>
 	</formats>
 </seelog>`
@@ -32,38 +37,20 @@ func configLogger() {
 
 func main() {
 	configLogger()
+	modules.EnableExitOnError()
 
-	installed, err := yum.Installed("ntp")
-	if err != nil {
-		panic(err)
-	}
-
+	installed, _ := yum.Installed("ntp")
 	if !installed {
-		_, err = yum.Install("ntp")
-		if err != nil {
-			panic(err)
-		}
+		yum.Install("ntp")
 	}
 
-	status, err := service.Status("ntpd")
-	if err != nil {
-		panic(err)
-	}
+	status, _ := service.Status("ntpd")
 	if status == service.STOPPED {
-		_, err = service.Start("ntpd")
-		if err != nil {
-			panic(err)
-		}
+		service.Start("ntpd")
 	}
 
-	enabled, err := service.AutoStartEnabled("ntpd")
-	if err != nil {
-		panic(err)
-	}
+	enabled, _ := service.AutoStartEnabled("ntpd")
 	if !enabled {
-		_, err = service.EnableAutoStart("ntpd")
-		if err != nil {
-			panic(err)
-		}
+		service.EnableAutoStart("ntpd")
 	}
 }

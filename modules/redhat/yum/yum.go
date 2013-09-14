@@ -18,6 +18,7 @@ func Installed(name string) (installed bool, err error) {
 	}
 	result.Changed = false
 	result.Log()
+	modules.ExitOnError(err)
 	return
 }
 

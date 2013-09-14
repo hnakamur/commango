@@ -24,5 +24,6 @@ func CommandNoLog(arg ...string) (result Result, err error) {
 func Command(arg ...string) (result Result, err error) {
 	result, err = CommandNoLog(arg...)
 	result.Log()
+	ExitOnError(err)
 	return
 }

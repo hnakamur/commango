@@ -3,12 +3,29 @@ package modules
 import (
 	"encoding/json"
 	"fmt"
+	"os"
 	"time"
 
 	log "github.com/cihub/seelog"
 	"github.com/hnakamur/commango/jsonutil"
 	"github.com/hnakamur/commango/os/executil"
 )
+
+var exitOnErrorEnabled bool
+
+func EnableExitOnError() {
+	exitOnErrorEnabled = true
+}
+
+func DisableExitOnError() {
+	exitOnErrorEnabled = true
+}
+
+func ExitOnError(err error) {
+	if exitOnErrorEnabled && err != nil {
+		os.Exit(1)
+	}
+}
 
 type Result struct {
 	Failed    bool
@@ -56,8 +73,10 @@ func (r *Result) Log() {
 
 	if r.Failed {
 		log.Error(json)
-	} else {
+	} else if r.Changed {
 		log.Info(json)
+	} else {
+		log.Debug(json)
 	}
 }
 

@@ -23,6 +23,7 @@ func Status(name string) (status string, err error) {
 	}
 	result.Changed = false
 	result.Log()
+	modules.ExitOnError(err)
 	return
 }
 
@@ -47,6 +48,7 @@ func AutoStartEnabled(name string) (enabled bool, err error) {
 	enabled = strings.Contains(result.Stdout, "\t2:on\t")
 	result.Changed = false
 	result.Log()
+	modules.ExitOnError(err)
 	return
 }
 
