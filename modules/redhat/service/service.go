@@ -4,6 +4,7 @@ import (
 	"strings"
 
 	"github.com/hnakamur/commango/modules"
+	"github.com/hnakamur/commango/modules/command"
 )
 
 const (
@@ -12,7 +13,7 @@ const (
 )
 
 func Status(name string) (status string, err error) {
-	result, err := modules.CommandNoLog("service", name, "status")
+	result, err := command.CommandNoLog("service", name, "status")
 	if result.Rc == 3 {
 		status = STOPPED
 		result.Err = nil
@@ -28,19 +29,19 @@ func Status(name string) (status string, err error) {
 }
 
 func Start(name string) (result modules.Result, err error) {
-	return modules.Command("service", name, "start")
+	return command.Command("service", name, "start")
 }
 
 func Stop(name string) (result modules.Result, err error) {
-	return modules.Command("service", name, "stop")
+	return command.Command("service", name, "stop")
 }
 
 func Restart(name string) (result modules.Result, err error) {
-	return modules.Command("service", name, "restart")
+	return command.Command("service", name, "restart")
 }
 
 func Reload(name string) (result modules.Result, err error) {
-	return modules.Command("service", name, "reload")
+	return command.Command("service", name, "reload")
 }
 
 func EnsureStarted(name string) (result modules.Result, err error) {
@@ -53,7 +54,7 @@ func EnsureStarted(name string) (result modules.Result, err error) {
 }
 
 func AutoStartEnabled(name string) (enabled bool, err error) {
-	result, err := modules.CommandNoLog("chkconfig", name, "--list")
+	result, err := command.CommandNoLog("chkconfig", name, "--list")
 	enabled = strings.Contains(result.Stdout, "\t2:on\t")
 	result.Changed = false
 	result.Log()
@@ -62,11 +63,11 @@ func AutoStartEnabled(name string) (enabled bool, err error) {
 }
 
 func EnableAutoStart(name string) (result modules.Result, err error) {
-	return modules.Command("chkconfig", name, "on")
+	return command.Command("chkconfig", name, "on")
 }
 
 func DisableAutoStart(name string) (result modules.Result, err error) {
-	return modules.Command("chkconfig", name, "off")
+	return command.Command("chkconfig", name, "off")
 }
 
 func EnsureAutoStartEnabled(name string) (result modules.Result, err error) {

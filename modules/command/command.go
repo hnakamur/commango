@@ -1,12 +1,13 @@
-package modules
+package command
 
 import (
 	"os/exec"
 
+	"github.com/hnakamur/commango/modules"
 	"github.com/hnakamur/commango/os/executil"
 )
 
-func CommandNoLog(arg ...string) (result Result, err error) {
+func CommandNoLog(arg ...string) (result modules.Result, err error) {
 	result.RecordStartTime()
 	defer result.RecordEndTime()
 
@@ -21,9 +22,9 @@ func CommandNoLog(arg ...string) (result Result, err error) {
 	return
 }
 
-func Command(arg ...string) (result Result, err error) {
+func Command(arg ...string) (result modules.Result, err error) {
 	result, err = CommandNoLog(arg...)
 	result.Log()
-	ExitOnError(err)
+	modules.ExitOnError(err)
 	return
 }
