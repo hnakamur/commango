@@ -5,10 +5,11 @@ import (
 
 	"github.com/hnakamur/commango/modules"
 	"github.com/hnakamur/commango/modules/command"
+	"github.com/hnakamur/commango/stringutil"
 )
 
 func Chown(path, owner string, recursive bool) (result modules.Result, err error) {
-	oldOwner, err := getOwner(path)
+	oldOwner, err := getOwner(path, recursive)
 	if err != nil {
 		return
 	}
@@ -32,22 +33,24 @@ func Chown(path, owner string, recursive bool) (result modules.Result, err error
 		modules.ExitOnError(err)
 	}()
 
-	index := strings.Index(oldOwner, ":")
-	oldUsername := oldOwner[:index]
-	oldGroupname := oldOwner[index+1:]
+	if len(oldOwner) == 1 {
+		index := strings.Index(oldOwner[0], ":")
+		oldUsername := oldOwner[0][:index]
+		oldGroupname := oldOwner[0][index+1:]
 
-	var username, groupname string
-	index = strings.IndexAny(owner, ".:")
-	if index != -1 {
-		username = owner[:index]
-		groupname = owner[index+1:]
-	} else {
-		username = owner
-	}
+		var username, groupname string
+		index = strings.IndexAny(owner, ".:")
+		if index != -1 {
+			username = owner[:index]
+			groupname = owner[index+1:]
+		} else {
+			username = owner
+		}
 
-	if (username == "" || username == oldUsername) &&
-		(groupname == "" || groupname == oldGroupname) {
-		return
+		if (username == "" || username == oldUsername) &&
+			(groupname == "" || groupname == oldGroupname) {
+			return
+		}
 	}
 
 	if recursive {
@@ -63,8 +66,14 @@ func Chown(path, owner string, recursive bool) (result modules.Result, err error
 	return
 }
 
-func getOwner(path string) (string, error) {
-	result, err := command.CommandNoLog("find", path, "-printf", "%u:%g", "-quit")
+func getOwner(path string, recursive bool) ([]string, error) {
+	var args []string
+	if recursive {
+		args = []string{"find", path, "-printf", "%u:%g\\n"}
+	} else {
+		args = []string{"find", path, "-printf", "%u:%g\\n", "-quit"}
+	}
+	result, err := command.CommandNoLog(args...)
 	result.Changed = false
 	if err != nil {
 		result.Err = err
@@ -72,5 +81,6 @@ func getOwner(path string) (string, error) {
 	}
 	result.Log()
 	modules.ExitOnError(err)
-	return result.Stdout, err
+	owners := strings.Split(strings.TrimRight(result.Stdout, "\n"), "\n")
+	return stringutil.Uniq(owners), err
 }
