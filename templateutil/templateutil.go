@@ -2,6 +2,7 @@ package templateutil
 
 import (
 	"bytes"
+	"fmt"
 	"io/ioutil"
 	"os"
 	"text/template"
@@ -13,22 +14,33 @@ func NewWithString(name, content string) (*template.Template, error) {
 }
 
 func WriteIfChanged(tmpl *template.Template, data interface{},
-		dest_path string, perm os.FileMode) (changed bool, err error) {
+		path string, perm os.FileMode) (changed bool, err error) {
 	output, err := RenderToBytes(tmpl, data)
 	if err != nil {
 		return false, err
 	}
 
-	orig, err := ioutil.ReadFile(dest_path)
-	if err != nil {
+	fi, err := os.Stat(path)
+	if err != nil && !os.IsNotExist(err) {
 		return false, err
 	}
 
-	if bytes.Equal(output, orig) {
-		return false, nil
+	if fi != nil {
+		if !fi.Mode().IsRegular() {
+			return false, fmt.Errorf("something not file exists: %s", path)
+		}
+
+		orig, err := ioutil.ReadFile(path)
+		if err != nil {
+			return false, err
+		}
+
+		if bytes.Equal(output, orig) {
+			return false, nil
+		}
 	}
 
-	err = ioutil.WriteFile(dest_path, output, perm)
+	err = ioutil.WriteFile(path, output, perm)
 	if err != nil {
 		return false, err
 	}
