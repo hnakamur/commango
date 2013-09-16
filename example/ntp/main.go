@@ -1,17 +1,18 @@
 package main
 
 import (
-    "os"
+	"os"
 
 	log "github.com/cihub/seelog"
 	"github.com/hnakamur/commango/modules"
-//	"github.com/hnakamur/commango/modules/command"
-//	"github.com/hnakamur/commango/modules/file"
+	//	"github.com/hnakamur/commango/modules/command"
+	//	"github.com/hnakamur/commango/modules/file"
 	"github.com/hnakamur/commango/modules/directory"
 	"github.com/hnakamur/commango/modules/template"
-//	"github.com/hnakamur/commango/modules/redhat/service"
+	//	"github.com/hnakamur/commango/modules/redhat/service"
+	"github.com/hnakamur/commango/modules/redhat/group"
 	"github.com/hnakamur/commango/modules/redhat/user"
-//	"github.com/hnakamur/commango/modules/redhat/yum"
+	//	"github.com/hnakamur/commango/modules/redhat/yum"
 	"github.com/hnakamur/commango/modules/shell"
 	"github.com/hnakamur/commango/task"
 )
@@ -48,8 +49,7 @@ func configLogger() {
 	log.ReplaceLogger(logger)
 }
 
-const NTP_CONF_TEMPLATE =
-`# For more information about this file, see the man pages
+const NTP_CONF_TEMPLATE = `# For more information about this file, see the man pages
 # ntp.conf(5), ntp_acc(5), ntp_auth(5), ntp_clock(5), ntp_misc(5), ntp_mon(5).
 
 driftfile /var/lib/ntp/drift
@@ -111,50 +111,55 @@ func main() {
 	configLogger()
 	modules.EnableExitOnError()
 
-    queue := task.NewTaskQueue()
-    queue.Add(
-        &shell.Shell{
-            Command: "echo hostname=`hostname`",
-        },
-        &shell.Shell{
-            Chdir: "/tmp",
-            Command: "pwd",
-        },
-        &directory.Directory{
-            State: directory.Present,
-            Path: "/tmp/foo/bar",
-            Mode: 0755,
-        },
-        &template.Template{
-            Path: "/tmp/foo/bar/baz.conf",
-            Content: NTP_CONF_TEMPLATE,
-            Data: map[string]interface{} {
-                "ntp_servers": []string{
-                    "ntp.nict.jp",
-                    "ntp.jst.mfeed.ad.jp",
-                    "ntp.ring.gr.jp",
-                },
-            },
-            Mode: 0644,
-        },
-        &user.User{
-            State: user.Present,
-            Name: "foo",
-            Uid: user.AUTO_UID,
-        },
-    )
-    err := queue.RunLoop()
-    if err != nil {
-        os.Exit(1)
-    }
+	queue := task.NewTaskQueue()
+	queue.Add(
+		&shell.Shell{
+			Command: "echo hostname=`hostname`",
+		},
+		&shell.Shell{
+			Chdir:   "/tmp",
+			Command: "pwd",
+		},
+		&directory.Directory{
+			State: directory.Present,
+			Path:  "/tmp/foo/bar",
+			Mode:  0755,
+		},
+		&template.Template{
+			Path:    "/tmp/foo/bar/baz.conf",
+			Content: NTP_CONF_TEMPLATE,
+			Data: map[string]interface{}{
+				"ntp_servers": []string{
+					"ntp.nict.jp",
+					"ntp.jst.mfeed.ad.jp",
+					"ntp.ring.gr.jp",
+				},
+			},
+			Mode: 0644,
+		},
+		&user.User{
+			State: user.Present,
+			Name:  "foo",
+			Uid:   user.AUTO_UID,
+		},
+		&group.Group{
+			State: group.Present,
+			Name:  "bar",
+			Gid:   group.AUTO_GID,
+		},
+	)
+	err := queue.RunLoop()
+	if err != nil {
+		os.Exit(1)
+	}
 
-//    command.Command("echo", "a", "b c")
-//	directory.Exists("/tmp/foo/bar")
-//	//directory.EnsureExists("/tmp/foo/bar", 0755)
-//	file.Chown("/tmp/foo", "vagrant:vagrant", true)
-//	file.Chmod("/tmp/foo", 0755, true)
-//	//directory.EnsureRemoved("/tmp/foo")
-//	yum.EnsureInstalled("ntp")
-//	service.EnsureStarted("ntpd")
-//	service.EnsureAutoStartEnabled("ntpd")
+	//    command.Command("echo", "a", "b c")
+	//	directory.Exists("/tmp/foo/bar")
+	//	//directory.EnsureExists("/tmp/foo/bar", 0755)
+	//	file.Chown("/tmp/foo", "vagrant:vagrant", true)
+	//	file.Chmod("/tmp/foo", 0755, true)
+	//	//directory.EnsureRemoved("/tmp/foo")
+	//	yum.EnsureInstalled("ntp")
+	//	service.EnsureStarted("ntpd")
+	//	service.EnsureAutoStartEnabled("ntpd")
 }
