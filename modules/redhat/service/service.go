@@ -7,10 +7,20 @@ import (
 	"github.com/hnakamur/commango/modules/command"
 )
 
+type State string
+
 const (
-	STARTED = "started"
-	STOPPED = "stopped"
+	STARTED   = State("started")
+	STOPPED   = State("stopped")
+	RESTARTED = State("restarted")
+	RELOADED  = State("reloaded")
 )
+
+type Service struct {
+	State            State
+	Name             string
+	AutoStartEnabled bool
+}
 
 func Status(name string) (status string, err error) {
 	result, err := command.CommandNoLog("service", name, "status")
