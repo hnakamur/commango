@@ -1,9 +1,8 @@
-package modules
+package task
 
 import (
 	"encoding/json"
 	"fmt"
-	"os"
 	"time"
 
 	log "github.com/cihub/seelog"
@@ -11,23 +10,8 @@ import (
 	"github.com/hnakamur/commango/os/executil"
 )
 
-var exitOnErrorEnabled bool
-
-func EnableExitOnError() {
-	exitOnErrorEnabled = true
-}
-
-func DisableExitOnError() {
-	exitOnErrorEnabled = true
-}
-
-func ExitOnError(err error) {
-	if exitOnErrorEnabled && err != nil {
-		os.Exit(1)
-	}
-}
-
 type Result struct {
+    Name      string
 	Skipped   bool
 	Failed    bool
 	Changed   bool
@@ -41,8 +25,11 @@ type Result struct {
 	Extra     map[string]interface{}
 }
 
-func NewResult() *Result {
-    return &Result{}
+func NewResult(name string) *Result {
+    return &Result{
+        Name: name,
+        Extra: make(map[string]interface{}),
+    }
 }
 
 func (r *Result) RecordStartTime() {
@@ -95,6 +82,7 @@ func (r *Result) ToJSON() map[string]interface{} {
 			obj[k] = v
 		}
 	}
+	obj["name"] = r.Name
 	obj["skipped"] = r.Skipped
 	obj["failed"] = r.Failed
 	obj["changed"] = r.Changed

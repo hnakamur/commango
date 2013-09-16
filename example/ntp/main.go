@@ -1,12 +1,17 @@
 package main
 
 import (
+    "os"
+
 	log "github.com/cihub/seelog"
 	"github.com/hnakamur/commango/modules"
-	"github.com/hnakamur/commango/modules/file"
-	"github.com/hnakamur/commango/modules/directory"
-	"github.com/hnakamur/commango/modules/redhat/service"
-	"github.com/hnakamur/commango/modules/redhat/yum"
+//	"github.com/hnakamur/commango/modules/command"
+//	"github.com/hnakamur/commango/modules/file"
+//	"github.com/hnakamur/commango/modules/directory"
+//	"github.com/hnakamur/commango/modules/redhat/service"
+//	"github.com/hnakamur/commango/modules/redhat/yum"
+	"github.com/hnakamur/commango/modules/shell"
+	"github.com/hnakamur/commango/task"
 )
 
 func configLogger() {
@@ -45,12 +50,24 @@ func main() {
 	configLogger()
 	modules.EnableExitOnError()
 
-	directory.Exists("/tmp/foo/bar")
-	//directory.EnsureExists("/tmp/foo/bar", 0755)
-	file.Chown("/tmp/foo", "vagrant:vagrant", true)
-	file.Chmod("/tmp/foo", 0755, true)
-	//directory.EnsureRemoved("/tmp/foo")
-	yum.EnsureInstalled("ntp")
-	service.EnsureStarted("ntpd")
-	service.EnsureAutoStartEnabled("ntpd")
+    queue := task.NewTaskQueue()
+    queue.Add(
+        &shell.Shell{
+            Command: "echo hostname=`hostname`",
+        },
+    )
+    err := queue.RunLoop()
+    if err != nil {
+        os.Exit(1)
+    }
+
+//    command.Command("echo", "a", "b c")
+//	directory.Exists("/tmp/foo/bar")
+//	//directory.EnsureExists("/tmp/foo/bar", 0755)
+//	file.Chown("/tmp/foo", "vagrant:vagrant", true)
+//	file.Chmod("/tmp/foo", 0755, true)
+//	//directory.EnsureRemoved("/tmp/foo")
+//	yum.EnsureInstalled("ntp")
+//	service.EnsureStarted("ntpd")
+//	service.EnsureAutoStartEnabled("ntpd")
 }

@@ -1,18 +1,29 @@
 package task
 
 import (
+    "encoding/json"
+
     "github.com/hnakamur/ringbuffer"
 )
 
-type Runner interface {
+type Task interface {
     Run() error
+    json.Marshaler
 }
 
-type TaskRunner struct {
+type TaskQueue struct {
     queue *ringbuffer.RingBuffer
 }
 
-func (r *TaskRunner) Add(tasks ...Runner) error {
+const QUEUE_SIZE = 64
+
+func NewTaskQueue() *TaskQueue {
+    return &TaskQueue{
+        queue: ringbuffer.NewRingBuffer(QUEUE_SIZE),
+    }
+}
+
+func (r *TaskQueue) Add(tasks ...Task) error {
     for _, task := range tasks {
         err := r.queue.Add(task)
         if err != nil {
@@ -22,20 +33,20 @@ func (r *TaskRunner) Add(tasks ...Runner) error {
     return nil
 }
 
-func (r *TaskRunner) HasTask() bool {
+func (r *TaskQueue) HasTask() bool {
     return r.queue.Len() > 0
 }
 
-func (r *TaskRunner) RunOneTask() error {
+func (r *TaskQueue) RunOneTask() error {
     item, err := r.queue.Remove()
     if err != nil {
         return err
     }
-    task := item.(Runner)
+    task := item.(Task)
     return task.Run()
 }
 
-func (r *TaskRunner) RunLoop() error {
+func (r *TaskQueue) RunLoop() error {
     for r.HasTask() {
         err := r.RunOneTask()
         if err != nil {

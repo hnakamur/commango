@@ -12,12 +12,12 @@ func FormatCommand(cmd *exec.Cmd) (string, error) {
 		if i > 0 {
 			out.WriteRune(' ')
 		}
-		out.WriteString(quoteWord(arg))
+		out.WriteString(QuoteWord(arg))
 	}
 	return out.String(), nil
 }
 
-func quoteWord(word string) string {
+func QuoteWord(word string) string {
 	if strings.ContainsAny(word, `'" `) {
 		return `"` + strings.Replace(word, `"`, `\"`, -1) + `"`
 	} else {
