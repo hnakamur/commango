@@ -55,6 +55,10 @@ func main() {
         &shell.Shell{
             Command: "echo hostname=`hostname`",
         },
+        &shell.Shell{
+            Chdir: "/tmp",
+            Command: "pwd",
+        },
     )
     err := queue.RunLoop()
     if err != nil {

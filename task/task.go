@@ -1,14 +1,11 @@
 package task
 
 import (
-    "encoding/json"
-
     "github.com/hnakamur/ringbuffer"
 )
 
 type Task interface {
-    Run() error
-    json.Marshaler
+    Run() (*Result, error)
 }
 
 type TaskQueue struct {
@@ -37,18 +34,20 @@ func (r *TaskQueue) HasTask() bool {
     return r.queue.Len() > 0
 }
 
-func (r *TaskQueue) RunOneTask() error {
+func (r *TaskQueue) RunOneTask() (*Result, error) {
     item, err := r.queue.Remove()
     if err != nil {
-        return err
+        return nil, err
     }
     task := item.(Task)
-    return task.Run()
+    result, err := task.Run()
+    result.Log()
+    return result, err
 }
 
 func (r *TaskQueue) RunLoop() error {
     for r.HasTask() {
-        err := r.RunOneTask()
+        _, err := r.RunOneTask()
         if err != nil {
             return err
         }

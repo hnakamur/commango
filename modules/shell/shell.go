@@ -1,14 +1,11 @@
 package shell
 
 import (
-    "encoding/json"
     "os/exec"
 
-	log "github.com/cihub/seelog"
-    "github.com/hnakamur/commango/modules"
     "github.com/hnakamur/commango/os/executil"
     "github.com/hnakamur/commango/os/osutil"
-    "github.com/hnakamur/commango/jsonutil"
+    "github.com/hnakamur/commango/task"
 )
 
 type Shell struct {
@@ -16,20 +13,21 @@ type Shell struct {
 	Command string
 	Chdir   string
 	Creates string
-    Result  *modules.Result
 }
 
 const DEFAULT_SHELL = "/bin/sh"
 
-func (s *Shell) Run() error {
-    s.Result = modules.NewResult()
-    s.Result.RecordStartTime()
-    defer s.Log()
-    defer s.Result.RecordEndTime()
+func (s *Shell) Run() (result *task.Result, err error) {
+    result = task.NewResult("shell")
+    result.RecordStartTime()
+    defer result.RecordEndTime()
 
-    if s.Creates != "" && osutil.Exists(s.Creates) {
-        s.Result.Skipped = true
-        return nil
+    result.Extra["shellcommand"] = s.Command
+    if s.Chdir != "" {
+        result.Extra["chdir"] = s.Chdir
+    }
+    if s.Creates != "" {
+        result.Extra["creates"] = s.Creates
     }
 
     var shell string
@@ -37,6 +35,12 @@ func (s *Shell) Run() error {
         shell = DEFAULT_SHELL
     } else {
         shell = s.Shell
+    }
+    result.Extra["shell"] = shell
+
+    if s.Creates != "" && osutil.Exists(s.Creates) {
+        result.Skipped = true
+        return
     }
 
     var command string
@@ -46,43 +50,12 @@ func (s *Shell) Run() error {
         command = s.Command
     }
 	cmd := exec.Command(shell, "-c", command)
-    var err error
-    s.Result.Command, err = executil.FormatCommand(cmd)
+    result.Command, err = executil.FormatCommand(cmd)
 	if err != nil {
-		return err
+		return
 	}
 
     r, err := executil.Run(cmd)
-    s.Result.SetExecResult(&r, err)
-    return err
-}
-
-func (s *Shell) MarshalJSON() ([]byte, error) {
-    obj := s.Result.ToJSON()
-    obj["name"] = "shell"
-    obj["command"] = s.Command
-    if s.Chdir != "" {
-        obj["chdir"] = s.Chdir
-    }
-    if s.Creates != "" {
-        obj["creates"] = s.Creates
-    }
-	return json.Marshal(obj)
-}
-
-func (s *Shell) Log() {
-	json, err := jsonutil.Encode(s)
-	if err != nil {
-		log.Error(err)
-	}
-
-	if s.Result.Failed {
-		log.Error(json)
-	} else if s.Result.Changed {
-		log.Info(json)
-	} else if !s.Result.Skipped {
-		log.Debug(json)
-	} else {
-		log.Trace(json)
-	}
+    result.SetExecResult(&r, err)
+    return
 }
