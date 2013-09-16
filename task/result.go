@@ -11,7 +11,7 @@ import (
 )
 
 type Result struct {
-    Name      string
+	Module    string
 	Skipped   bool
 	Failed    bool
 	Changed   bool
@@ -25,11 +25,11 @@ type Result struct {
 	Extra     map[string]interface{}
 }
 
-func NewResult(name string) *Result {
-    return &Result{
-        Name: name,
-        Extra: make(map[string]interface{}),
-    }
+func NewResult(module string) *Result {
+	return &Result{
+		Module: module,
+		Extra:  make(map[string]interface{}),
+	}
 }
 
 func (r *Result) RecordStartTime() {
@@ -82,7 +82,7 @@ func (r *Result) ToJSON() map[string]interface{} {
 			obj[k] = v
 		}
 	}
-	obj["name"] = r.Name
+	obj["module"] = r.Module
 	obj["skipped"] = r.Skipped
 	obj["failed"] = r.Failed
 	obj["changed"] = r.Changed

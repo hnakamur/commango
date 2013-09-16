@@ -22,7 +22,7 @@ func (s *Shell) Run() (result *task.Result, err error) {
     result.RecordStartTime()
     defer result.RecordEndTime()
 
-    result.Extra["shellcommand"] = s.Command
+    result.Command = s.Command
     if s.Chdir != "" {
         result.Extra["chdir"] = s.Chdir
     }
@@ -50,7 +50,7 @@ func (s *Shell) Run() (result *task.Result, err error) {
         command = s.Command
     }
 	cmd := exec.Command(shell, "-c", command)
-    result.Command, err = executil.FormatCommand(cmd)
+    result.Extra["command"], err = executil.FormatCommand(cmd)
 	if err != nil {
 		return
 	}

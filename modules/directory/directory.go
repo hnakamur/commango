@@ -5,42 +5,83 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/hnakamur/commango/modules"
+	"github.com/hnakamur/commango/task"
 )
 
-func Exists(path string) (bool, error) {
-	extra := make(map[string]interface{})
-	extra["directory"] = path
-	result := modules.Result{
-		Extra: extra,
-	}
+type State string
 
+const (
+	Present = State("present")
+	Absent  = State("absent")
+)
+
+type Directory struct {
+	State State
+	Path  string
+	Mode  os.FileMode
+}
+
+func (d *Directory) Run() (*task.Result, error) {
+	result := task.NewResult("directory")
 	result.RecordStartTime()
-	fi, err := os.Lstat(path)
-	result.RecordEndTime()
+	defer result.RecordEndTime()
 
-	var exists bool
+	result.Extra["state"] = string(d.State)
+	result.Extra["path"] = d.Path
+	if d.State == Absent {
+		return d.ensureAbsent(result)
+	} else {
+		result.Extra["mode"] = fmt.Sprintf("%o", d.Mode)
+		return d.ensurePresent(result)
+	}
+}
+
+func (d *Directory) ensurePresent(result *task.Result) (*task.Result, error) {
+	fi, err := os.Lstat(d.Path)
 	if err != nil {
 		if isNoSuchFileOrDirectory(err) {
-			err = nil
-			exists = false
+			err = os.MkdirAll(d.Path, d.Mode)
+			if err == nil {
+				result.Changed = true
+			}
 		}
 	} else {
 		if fi.IsDir() {
-			exists = true
+			oldMode := fi.Mode() & os.ModePerm
+			if oldMode == d.Mode {
+				result.Skipped = true
+			} else {
+				result.Extra["old_mode"] = fmt.Sprintf("%o", oldMode)
+				err = os.Chmod(d.Path, d.Mode)
+				if err == nil {
+					result.Changed = true
+				}
+			}
 		} else {
 			err = errors.New("something not directory exists or permission denied")
 		}
 	}
+	return result, err
+}
 
-	extra["exists"] = exists
+func (d *Directory) ensureAbsent(result *task.Result) (*task.Result, error) {
+	fi, err := os.Lstat(d.Path)
 	if err != nil {
-		result.Err = err
-		result.Failed = true
+		if isNoSuchFileOrDirectory(err) {
+			result.Skipped = true
+			err = nil
+		}
+	} else {
+		if fi.IsDir() {
+			err = os.RemoveAll(d.Path)
+			if err == nil {
+				result.Changed = true
+			}
+		} else {
+			err = errors.New("something not directory exists or permission denied")
+		}
 	}
-	result.Log()
-	modules.ExitOnError(err)
-	return exists, nil
+	return result, err
 }
 
 func isNoSuchFileOrDirectory(err error) bool {
@@ -49,89 +90,4 @@ func isNoSuchFileOrDirectory(err error) bool {
 	} else {
 		return false
 	}
-}
-
-func EnsureExists(path string, perm os.FileMode) (err error) {
-	extra := make(map[string]interface{})
-	extra["directory"] = path
-	extra["op"] = "create"
-	extra["mode"] = fmt.Sprintf("%o", perm)
-	result := modules.Result{
-		Extra: extra,
-	}
-
-	result.RecordStartTime()
-	result.Skipped = true
-	fi, err := os.Lstat(path)
-	if err != nil {
-		if isNoSuchFileOrDirectory(err) {
-			result.Skipped = false
-			err = os.MkdirAll(path, perm)
-			if err == nil {
-				result.Changed = true
-				extra["msg"] = "created"
-			}
-		}
-	} else {
-		if fi.IsDir() {
-			origMode := fi.Mode() & os.ModePerm
-			if origMode != perm {
-				extra["orig_mode"] = fmt.Sprintf("%o", origMode)
-				err = os.Chmod(path, perm)
-				if err == nil {
-					result.Changed = true
-					extra["msg"] = "directory existed, changed only mode"
-				}
-			}
-		} else {
-			err = errors.New("something not directory exists or permission denied")
-		}
-	}
-	result.RecordEndTime()
-
-	if err != nil {
-		result.Err = err
-		result.Failed = true
-	}
-	result.Log()
-	modules.ExitOnError(err)
-	return err
-}
-
-func EnsureRemoved(path string) (err error) {
-	extra := make(map[string]interface{})
-	extra["directory"] = path
-	extra["op"] = "remove"
-	result := modules.Result{
-		Extra: extra,
-	}
-
-	result.RecordStartTime()
-	result.Skipped = true
-	fi, err := os.Lstat(path)
-	if err != nil {
-		if isNoSuchFileOrDirectory(err) {
-			err = nil
-		}
-	} else {
-		if fi.IsDir() {
-			result.Skipped = false
-			err = os.RemoveAll(path)
-			if err == nil {
-				extra["msg"] = "removed"
-				result.Changed = true
-			}
-		} else {
-			err = errors.New("something not directory exists or permission denied")
-		}
-	}
-	result.RecordEndTime()
-
-	if err != nil {
-		result.Err = err
-		result.Failed = true
-	}
-	result.Log()
-	modules.ExitOnError(err)
-	return err
 }

@@ -4,41 +4,33 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/hnakamur/commango/modules"
+	"github.com/hnakamur/commango/task"
 	"github.com/hnakamur/commango/templateutil"
 )
 
-func EnsureExists(path string, content string, data interface{},
-	perm os.FileMode) (result modules.Result, err error) {
+type Template struct {
+	Path    string
+	Content string
+	Data    interface{}
+	Mode    os.FileMode
+}
+
+func (t *Template) Run() (result *task.Result, err error) {
+	result = task.NewResult("template")
 	result.RecordStartTime()
+	defer result.RecordEndTime()
 
-	extra := map[string]interface{}{
-		"op":      "template",
-		"path":    path,
-		"content": content,
-		"data":    data,
-		"mode":    fmt.Sprintf("%o", perm),
-	}
+	result.Extra["path"] = t.Path
+	result.Extra["content"] = t.Content
+	result.Extra["data"] = t.Data
+	result.Extra["mode"] = fmt.Sprintf("%o", t.Mode)
 
-	defer func() {
-		result.Extra = extra
-
-		result.RecordEndTime()
-
-		if err != nil {
-			result.Err = err
-			result.Failed = true
-		}
-		result.Log()
-		modules.ExitOnError(err)
-	}()
-
-	tmpl, err := templateutil.NewWithString(path, content)
+	tmpl, err := templateutil.NewWithString(t.Path, t.Content)
 	if err != nil {
 		return
 	}
 
-	changed, err := templateutil.WriteIfChanged(tmpl, data, path, perm)
+	changed, err := templateutil.WriteIfChanged(tmpl, t.Data, t.Path, t.Mode)
 	if err != nil {
 		return
 	}

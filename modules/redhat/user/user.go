@@ -1,184 +1,202 @@
 package user
 
 import (
+	"os/exec"
 	osuser "os/user"
 	"strconv"
 	"strings"
 
-	"github.com/hnakamur/commango/modules"
-	"github.com/hnakamur/commango/modules/command"
 	unixgroup "github.com/hnakamur/commango/os/unix/group"
 	unixuser "github.com/hnakamur/commango/os/unix/user"
+	"github.com/hnakamur/commango/os/executil"
 	"github.com/hnakamur/commango/stringutil"
+	"github.com/hnakamur/commango/task"
 )
 
-func EnsureExists(name string, uid int, system bool, group string,
-	groups []string, appends bool, comment string, home string,
-	shell string) (result modules.Result, err error) {
+type State string
+
+const (
+	Present = State("present")
+	Absent  = State("absent")
+)
+
+const AUTO_UID = -1
+
+type User struct {
+	State   State
+	Name    string
+	Uid     int
+	System  bool     // whether or not system account
+	Group   string   // primary group
+	Groups  []string // supplementary groups
+	Appends bool     // whether or not appending supplementary groups
+	Comment string
+	HomeDir string
+	Shell   string
+	RemovesHome   bool
+}
+
+func (u *User) Run() (*task.Result, error) {
+	result := task.NewResult("user")
 	result.RecordStartTime()
+	defer result.RecordEndTime()
 
-	extra := map[string]interface{}{
-		"op":      "user",
-		"name":    name,
-		"uid":     uid,
-		"system":  system,
-		"group":   group,
-		"groups":  groups,
-		"appends": appends,
-		"comment": comment,
-		"home":    home,
-		"shell":   shell,
+	result.Extra["state"] = string(u.State)
+	result.Extra["name"] = u.Name
+	if u.State == Absent {
+		return u.ensureAbsent(result)
+	} else {
+		result.Extra["uid"] = u.Uid
+		result.Extra["system"] = u.System
+		result.Extra["group"] = u.Group
+		result.Extra["groups"] = u.Groups
+		result.Extra["u.Appends"] = u.Appends
+		result.Extra["comment"] = u.Comment
+		result.Extra["home_dir"] = u.HomeDir
+		result.Extra["shell"] = u.Shell
+		return u.ensurePresent(result)
 	}
+}
 
-	defer func() {
-		result.Extra = extra
-
-		result.RecordEndTime()
-
-		if err != nil {
-			result.Err = err
-			result.Failed = true
-		}
-		result.Log()
-		modules.ExitOnError(err)
-	}()
-
+func (u *User) ensurePresent(result *task.Result) (*task.Result, error) {
 	var uidStr string
-	if uid != -1 {
-		uidStr = strconv.Itoa(uid)
+	if u.Uid != AUTO_UID {
+		uidStr = strconv.Itoa(u.Uid)
 	}
 
+    var command string
 	args := make([]string, 0)
-	oldUser, err := unixuser.Lookup(name, nil)
+    var err error
+	oldUser, err := unixuser.Lookup(u.Name, nil)
 	if err != nil {
 		if _, ok := err.(osuser.UnknownUserError); !ok {
-			return
+			return result, err
 		}
 
-		args = append(args, "useradd")
+        command = "useradd"
 	} else {
-		extra["old_uid"], err = strconv.Atoi(oldUser.Uid)
-		if err != nil {
-			return
-		}
-
-		extra["old_gid"], err = strconv.Atoi(oldUser.Gid)
-		if err != nil {
-			return
-		}
-
 		var allGroups []*unixgroup.Group
 		allGroups, err = unixgroup.AllGroups()
 		if err != nil {
-			return
+			return result, err
 		}
 
 		var oldGroup *unixgroup.Group
 		oldGroup, err = unixgroup.LookupId(oldUser.Gid, allGroups)
 		if err != nil {
-			return
+			return result, err
 		}
 
 		var oldGroups []string
-		oldGroups, err = unixgroup.SupplementaryGroups(name, allGroups)
+		oldGroups, err = unixgroup.SupplementaryGroups(u.Name, allGroups)
 		if err != nil {
-			return
+			return result, err
 		}
-		extra["old_groups"] = oldGroups
 
 		var groupsWillChange bool
-		if appends {
-			groupsWillChange = !stringutil.ArrayContainsAll(oldGroups, groups)
+		if u.Appends {
+			groupsWillChange = !stringutil.ArrayContainsAll(oldGroups, u.Groups)
 		} else {
-			groupsWillChange = !stringutil.SetEqual(oldGroups, groups)
+			groupsWillChange = !stringutil.SetEqual(oldGroups, u.Groups)
 		}
 
 		if (uidStr == "" || uidStr == oldUser.Uid) &&
-			(group == "" || group == oldUser.Gid || group == oldGroup.Name) &&
+			(u.Group == "" || u.Group == oldUser.Gid || u.Group == oldGroup.Name) &&
 			!groupsWillChange &&
-			(comment == "" || comment == oldUser.Name) &&
-			(home == "" || home == oldUser.HomeDir) &&
-			(shell == "" || shell == oldUser.Shell) {
+			(u.Comment == "" || u.Comment == oldUser.Name) &&
+			(u.HomeDir == "" || u.HomeDir == oldUser.HomeDir) &&
+			(u.Shell == "" || u.Shell == oldUser.Shell) {
 			result.Skipped = true
-			return
+			return result, err
 		}
 
-		args = append(args, "usermod")
+        if uidStr != "" && uidStr != oldUser.Uid {
+            result.Extra["old_uid"], err = strconv.Atoi(oldUser.Uid)
+            if err != nil {
+                return result, err
+            }
+        }
 
-		if appends && len(groups) > 0 {
+        if u.Group != "" && u.Group != oldUser.Gid && u.Group != oldGroup.Name {
+            result.Extra["old_gid"], err = strconv.Atoi(oldUser.Gid)
+            if err != nil {
+                return result, err
+            }
+        }
+
+        if groupsWillChange {
+            result.Extra["old_u.Groups"] = oldGroups
+        }
+
+        command = "usermod"
+
+		if u.Appends && len(u.Groups) > 0 {
 			args = append(args, "-a")
 		}
 	}
 	if uidStr != "" {
 		args = append(args, "-u", uidStr)
 	}
-	if group != "" {
-		args = append(args, "-g", group)
+	if u.Group != "" {
+		args = append(args, "-g", u.Group)
 	}
-	if len(groups) > 0 {
-		args = append(args, "-G", strings.Join(groups, ","))
+	if len(u.Groups) > 0 {
+		args = append(args, "-G", strings.Join(u.Groups, ","))
 	}
-	if system {
+	if u.System {
 		args = append(args, "-r")
 	}
-	if comment != "" {
-		args = append(args, "-c", comment)
+	if u.Comment != "" {
+		args = append(args, "-c", u.Comment)
 	}
-	if home != "" {
-		args = append(args, "-d", home)
+	if u.HomeDir != "" {
+		args = append(args, "-d", u.HomeDir)
 	}
-	if shell != "" {
-		args = append(args, "-s", shell)
+	if u.Shell != "" {
+		args = append(args, "-s", u.Shell)
 	}
-	args = append(args, name)
+	args = append(args, u.Name)
 
-	result, err = command.CommandNoLog(args...)
-	result.Changed = true
-	return
+	cmd := exec.Command(command, args...)
+    result.Command, err = executil.FormatCommand(cmd)
+	if err != nil {
+		return result, err
+	}
+
+    r, err := executil.Run(cmd)
+    result.SetExecResult(&r, err)
+	return result, err
 }
 
-func EnsureRemoved(name string, removesHome bool) (result modules.Result, err error) {
-	result.RecordStartTime()
-
-	extra := make(map[string]interface{})
-	extra["op"] = "userdel"
-	extra["name"] = name
-	extra["removes_home"] = removesHome
-
-	defer func() {
-		result.Extra = extra
-
-		result.RecordEndTime()
-
-		if err != nil {
-			result.Err = err
-			result.Failed = true
-		}
-		result.Log()
-		modules.ExitOnError(err)
-	}()
-
-	oldUser, err := unixuser.Lookup(name, nil)
+func (u *User) ensureAbsent(result *task.Result) (*task.Result, error) {
+    var err error
+	oldUser, err := unixuser.Lookup(u.Name, nil)
 	if err != nil {
 		if _, ok := err.(osuser.UnknownUserError); ok {
 			err = nil
 			result.Skipped = true
 		}
-		return
+		return result, err
 	}
 
-	extra["old_uid"], err = strconv.Atoi(oldUser.Gid)
+	result.Extra["old_uid"], err = strconv.Atoi(oldUser.Gid)
 	if err != nil {
-		return
+		return result, err
 	}
 
-	args := []string{"userdel"}
-	if removesHome {
+    args := make([]string, 0)
+	if u.RemovesHome {
 		args = append(args, "-r")
 	}
-	args = append(args, name)
+	args = append(args, u.Name)
 
-	result, err = command.CommandNoLog(args...)
-	result.Changed = true
-	return
+	cmd := exec.Command("userdel", args...)
+    result.Command, err = executil.FormatCommand(cmd)
+	if err != nil {
+		return result, err
+	}
+
+    r, err := executil.Run(cmd)
+    result.SetExecResult(&r, err)
+	return result, err
 }
