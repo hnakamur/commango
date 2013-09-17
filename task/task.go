@@ -41,7 +41,9 @@ func (r *TaskQueue) RunOneTask() (*Result, error) {
     }
     task := item.(Task)
     result, err := task.Run()
-    result.Log()
+    if result != nil {
+        result.Log()
+    }
     return result, err
 }
 

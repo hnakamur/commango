@@ -3,6 +3,7 @@ package task
 import (
 	"encoding/json"
 	"fmt"
+	"os/exec"
 	"time"
 
 	log "github.com/cihub/seelog"
@@ -30,6 +31,21 @@ func NewResult(module string) *Result {
 		Module: module,
 		Extra:  make(map[string]interface{}),
 	}
+}
+
+func ExecCommand(module string, cmd *exec.Cmd) (result *Result, err error) {
+	result = NewResult(module)
+	result.RecordStartTime()
+	defer result.RecordEndTime()
+
+    result.Command, err = executil.FormatCommand(cmd)
+    if err != nil {
+        return
+    }
+
+    r, err := executil.Run(cmd)
+    result.SetExecResult(&r, err)
+    return
 }
 
 func (r *Result) RecordStartTime() {

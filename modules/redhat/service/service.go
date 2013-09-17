@@ -1,10 +1,10 @@
 package service
 
 import (
+	"os/exec"
 	"strings"
 
-	"github.com/hnakamur/commango/modules"
-	"github.com/hnakamur/commango/modules/command"
+	"github.com/hnakamur/commango/task"
 )
 
 type State string
@@ -22,69 +22,100 @@ type Service struct {
 	AutoStartEnabled bool
 }
 
-func Status(name string) (status string, err error) {
-	result, err := command.CommandNoLog("service", name, "status")
+func (s *Service) Run() (*task.Result, error) {
+    result, err := s.ensureState(s.State)
+    if err != nil {
+        return result, err
+    }
+
+    return s.ensureAutoStart(s.AutoStartEnabled)
+}
+
+func (s *Service) ensureState(state State) (result *task.Result, err error) {
+    oldState, err := s.state()
+    if err != nil {
+        return
+    }
+    var op string
+    switch s.State {
+    case STARTED:
+        if oldState == STOPPED {
+            op = "start"
+        }
+    case STOPPED:
+        if oldState == STARTED {
+            op = "stop"
+        }
+    case RESTARTED:
+        if oldState == STARTED {
+            op = "restart"
+        } else {
+            op = "start"
+        }
+    case RELOADED:
+        if oldState == STARTED {
+            op = "reload"
+        } else {
+            op = "start"
+        }
+    }
+    if op == "" {
+        return
+    }
+
+    cmd := exec.Command("service", s.Name, op)
+    result, err = task.ExecCommand("service.change_state", cmd)
+	result.Extra["name"] = s.Name
+	result.Extra["state"] = string(state)
+	return
+}
+
+func (s *Service) state() (state State, err error) {
+	cmd := exec.Command("service", s.Name, "status")
+    result, err := task.ExecCommand("service.state", cmd)
+	result.Extra["name"] = s.Name
 	if result.Rc == 3 {
-		status = STOPPED
+		state = STOPPED
 		result.Err = nil
 		err = nil
 		result.Failed = false
 	} else if result.Rc == 0 {
-		status = STARTED
+		state = STARTED
 	}
 	result.Changed = false
 	result.Log()
-	modules.ExitOnError(err)
+	return state, err
+}
+
+func (s *Service) ensureAutoStart(enabled bool) (result *task.Result, err error) {
+    oldEnabled, err := s.autoStartEnabled()
+    if err != nil {
+        return
+    }
+
+    var op string
+    if enabled {
+        if !oldEnabled {
+            op = "on"
+        }
+    } else {
+        if oldEnabled {
+            op = "off"
+        }
+    }
+    if op == "" {
+        return
+    }
+	cmd := exec.Command("chkconfig", s.Name, op)
+    result, err = task.ExecCommand("service.change_auto_start", cmd)
 	return
 }
 
-func Start(name string) (result modules.Result, err error) {
-	return command.Command("service", name, "start")
-}
-
-func Stop(name string) (result modules.Result, err error) {
-	return command.Command("service", name, "stop")
-}
-
-func Restart(name string) (result modules.Result, err error) {
-	return command.Command("service", name, "restart")
-}
-
-func Reload(name string) (result modules.Result, err error) {
-	return command.Command("service", name, "reload")
-}
-
-func EnsureStarted(name string) (result modules.Result, err error) {
-	status, err := Status(name)
-	if status == STARTED || err != nil {
-		return
-	}
-
-	return Start(name)
-}
-
-func AutoStartEnabled(name string) (enabled bool, err error) {
-	result, err := command.CommandNoLog("chkconfig", name, "--list")
+func (s *Service) autoStartEnabled() (enabled bool, err error) {
+	cmd := exec.Command("chkconfig", s.Name, "--list")
+    result, err := task.ExecCommand("service.auto_start", cmd)
 	enabled = strings.Contains(result.Stdout, "\t2:on\t")
 	result.Changed = false
 	result.Log()
-	modules.ExitOnError(err)
 	return
-}
-
-func EnableAutoStart(name string) (result modules.Result, err error) {
-	return command.Command("chkconfig", name, "on")
-}
-
-func DisableAutoStart(name string) (result modules.Result, err error) {
-	return command.Command("chkconfig", name, "off")
-}
-
-func EnsureAutoStartEnabled(name string) (result modules.Result, err error) {
-	enabled, err := AutoStartEnabled(name)
-	if enabled || err != nil {
-		return
-	}
-
-	return EnableAutoStart(name)
 }
