@@ -1,7 +1,6 @@
 package service
 
 import (
-	"os/exec"
 	"strings"
 
 	"github.com/hnakamur/commango/task"
@@ -23,56 +22,66 @@ type Service struct {
 }
 
 func (s *Service) Run() (*task.Result, error) {
-    result, err := s.ensureState(s.State)
-    if err != nil {
-        return result, err
-    }
+	result, err := s.ensureState(s.State)
+	if err != nil {
+		return result, err
+	}
 
-    return s.ensureAutoStart(s.AutoStartEnabled)
+	return s.ensureAutoStart(s.AutoStartEnabled)
 }
 
 func (s *Service) ensureState(state State) (result *task.Result, err error) {
-    oldState, err := s.state()
-    if err != nil {
-        return
-    }
-    var op string
-    switch s.State {
-    case STARTED:
-        if oldState == STOPPED {
-            op = "start"
-        }
-    case STOPPED:
-        if oldState == STARTED {
-            op = "stop"
-        }
-    case RESTARTED:
-        if oldState == STARTED {
-            op = "restart"
-        } else {
-            op = "start"
-        }
-    case RELOADED:
-        if oldState == STARTED {
-            op = "reload"
-        } else {
-            op = "start"
-        }
-    }
-    if op == "" {
-        return
-    }
+	oldState, err := s.state()
+	if err != nil {
+		return
+	}
 
-    cmd := exec.Command("service", s.Name, op)
-    result, err = task.ExecCommand("service.change_state", cmd)
+	result = task.NewResult("service.change_state")
+	result.RecordStartTime()
+	defer result.Log()
+	defer result.RecordEndTime()
+
 	result.Extra["name"] = s.Name
 	result.Extra["state"] = string(state)
+
+	var op string
+	switch s.State {
+	case STARTED:
+		if oldState == STOPPED {
+			op = "start"
+		}
+	case STOPPED:
+		if oldState == STARTED {
+			op = "stop"
+		}
+	case RESTARTED:
+		if oldState == STARTED {
+			op = "restart"
+		} else {
+			op = "start"
+		}
+	case RELOADED:
+		if oldState == STARTED {
+			op = "reload"
+		} else {
+			op = "start"
+		}
+	}
+	if op == "" {
+		result.Skipped = true
+		return
+	}
+
+	err = result.ExecCommand("service", s.Name, op)
 	return
 }
 
 func (s *Service) state() (state State, err error) {
-	cmd := exec.Command("service", s.Name, "status")
-    result, err := task.ExecCommand("service.state", cmd)
+	result := task.NewResult("service.state")
+	result.RecordStartTime()
+	defer result.RecordEndTime()
+
+	err = result.ExecCommand("service", s.Name, "status")
 	result.Extra["name"] = s.Name
 	if result.Rc == 3 {
 		state = STOPPED
@@ -88,32 +97,41 @@ func (s *Service) state() (state State, err error) {
 }
 
 func (s *Service) ensureAutoStart(enabled bool) (result *task.Result, err error) {
-    oldEnabled, err := s.autoStartEnabled()
-    if err != nil {
-        return
-    }
+	oldEnabled, err := s.autoStartEnabled()
+	if err != nil {
+		return
+	}
 
-    var op string
-    if enabled {
-        if !oldEnabled {
-            op = "on"
-        }
-    } else {
-        if oldEnabled {
-            op = "off"
-        }
-    }
-    if op == "" {
-        return
-    }
-	cmd := exec.Command("chkconfig", s.Name, op)
-    result, err = task.ExecCommand("service.change_auto_start", cmd)
+	result = task.NewResult("service.change_auto_start")
+	result.RecordStartTime()
+	defer result.RecordEndTime()
+
+	result.Extra["name"] = s.Name
+
+	var op string
+	if enabled {
+		if !oldEnabled {
+			op = "on"
+		}
+	} else {
+		if oldEnabled {
+			op = "off"
+		}
+	}
+	if op == "" {
+		result.Skipped = true
+		return
+	}
+	err = result.ExecCommand("chkconfig", s.Name, op)
 	return
 }
 
 func (s *Service) autoStartEnabled() (enabled bool, err error) {
-	cmd := exec.Command("chkconfig", s.Name, "--list")
-    result, err := task.ExecCommand("service.auto_start", cmd)
+	result := task.NewResult("service.auto_start")
+	result.RecordStartTime()
+	defer result.RecordEndTime()
+
+	err = result.ExecCommand("chkconfig", s.Name, "--list")
 	enabled = strings.Contains(result.Stdout, "\t2:on\t")
 	result.Changed = false
 	result.Log()

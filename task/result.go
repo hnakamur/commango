@@ -33,19 +33,17 @@ func NewResult(module string) *Result {
 	}
 }
 
-func ExecCommand(module string, cmd *exec.Cmd) (result *Result, err error) {
-	result = NewResult(module)
-	result.RecordStartTime()
-	defer result.RecordEndTime()
+func (r *Result) ExecCommand(command string, args ...string) error {
+	cmd := exec.Command(command, args...)
+	var err error
+	r.Command, err = executil.FormatCommand(cmd)
+	if err != nil {
+		return err
+	}
 
-    result.Command, err = executil.FormatCommand(cmd)
-    if err != nil {
-        return
-    }
-
-    r, err := executil.Run(cmd)
-    result.SetExecResult(&r, err)
-    return
+	runResult, err := executil.Run(cmd)
+	r.SetExecResult(&runResult, err)
+	return err
 }
 
 func (r *Result) RecordStartTime() {
