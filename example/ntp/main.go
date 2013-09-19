@@ -165,14 +165,4 @@ func main() {
 	if err != nil {
 		os.Exit(1)
 	}
-
-	//    command.Command("echo", "a", "b c")
-	//	directory.Exists("/tmp/foo/bar")
-	//	//directory.EnsureExists("/tmp/foo/bar", 0755)
-	//	file.Chown("/tmp/foo", "vagrant:vagrant", true)
-	//	file.Chmod("/tmp/foo", 0755, true)
-	//	//directory.EnsureRemoved("/tmp/foo")
-	//	yum.EnsureInstalled("ntp")
-	//	service.EnsureStarted("ntpd")
-	//	service.EnsureAutoStartEnabled("ntpd")
 }
