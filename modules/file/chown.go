@@ -3,85 +3,84 @@ package file
 import (
 	"strings"
 
-	"github.com/hnakamur/commango/modules"
-	"github.com/hnakamur/commango/modules/command"
+	"github.com/hnakamur/commango/task"
 	"github.com/hnakamur/commango/stringutil"
 )
 
-func Chown(path, owner string, recursive bool) (result modules.Result, err error) {
-	oldOwners, err := getOwners(path, recursive)
+type Chown struct {
+	Path      string
+	Owner     string
+	Group     string
+	Recursive bool
+}
+
+func (c *Chown) Run() (result *task.Result, err error) {
+	oldOwners, err := c.getOwners()
 	if err != nil {
 		return
 	}
 
+	result = task.NewResult("chown")
 	result.RecordStartTime()
+
+	result.Extra["path"] = c.Path
+	result.Extra["owner"] = c.Owner
+	result.Extra["group"] = c.Group
+	result.Extra["recursive"] = c.Recursive
+
 	defer func() {
-		extra := make(map[string]interface{})
-		extra["op"] = "chown"
-		extra["path"] = path
-		extra["owner"] = owner
-		extra["old_owner"] = oldOwners
-		result.Extra = extra
-
 		result.RecordEndTime()
-
-		if err != nil {
-			result.Err = err
-			result.Failed = true
-		}
 		result.Log()
-		modules.ExitOnError(err)
 	}()
 
 	if len(oldOwners) == 1 {
 		index := strings.Index(oldOwners[0], ":")
-		oldUsername := oldOwners[0][:index]
-		oldGroupname := oldOwners[0][index+1:]
+		oldOwner := oldOwners[0][:index]
+		oldGroup := oldOwners[0][index+1:]
 
-		var username, groupname string
-		index = strings.IndexAny(owner, ".:")
-		if index != -1 {
-			username = owner[:index]
-			groupname = owner[index+1:]
-		} else {
-			username = owner
-		}
-
-		if (username == "" || username == oldUsername) &&
-			(groupname == "" || groupname == oldGroupname) {
+		if (c.Owner == "" || c.Owner == oldOwner) &&
+			(c.Group == "" || c.Group == oldGroup) {
 			result.Skipped = true
 			return
 		}
 	}
 
-	if recursive {
-		result, err = command.CommandNoLog("chown", "-R", owner, path)
+	var owner string
+	if c.Group != "" {
+		owner = c.Owner + ":" + c.Group
 	} else {
-		result, err = command.CommandNoLog("chown", owner, path)
+		owner = c.Owner
 	}
-	if err != nil {
-		return
+	var args []string
+	if c.Recursive {
+		args = []string{"-R", owner, c.Path}
+	} else {
+		args = []string{owner, c.Path}
 	}
-
-	result.Changed = true
+	err = result.ExecCommand("chown", args...)
 	return
 }
 
-func getOwners(path string, recursive bool) ([]string, error) {
+func (c *Chown) getOwners() (owners []string, err error) {
+	result := task.NewResult("chown.get_owners")
+	result.RecordStartTime()
+
+	result.Extra["path"] = c.Path
+	result.Extra["recursive"] = c.Recursive
+
 	var args []string
-	if recursive {
-		args = []string{"find", path, "-printf", "%u:%g\\n"}
+	if c.Recursive {
+		args = []string{c.Path, "-printf", "%u:%g\\n", "-quit"}
 	} else {
-		args = []string{"find", path, "-printf", "%u:%g\\n", "-quit"}
+		args = []string{c.Path, "-printf", "%u:%g\\n"}
 	}
-	result, err := command.CommandNoLog(args...)
+	err = result.ExecCommand("find", args...)
+
+	lines := strings.Split(strings.TrimRight(result.Stdout, "\n"), "\n")
+	owners = stringutil.Uniq(lines)
+
 	result.Changed = false
-	if err != nil {
-		result.Err = err
-		result.Failed = true
-	}
+	result.RecordEndTime()
 	result.Log()
-	modules.ExitOnError(err)
-	owners := strings.Split(strings.TrimRight(result.Stdout, "\n"), "\n")
-	return stringutil.Uniq(owners), err
+	return
 }

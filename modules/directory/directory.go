@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/hnakamur/commango/modules/file"
 	"github.com/hnakamur/commango/task"
 )
 
@@ -18,6 +19,8 @@ const (
 type Directory struct {
 	State State
 	Path  string
+	Owner string
+	Group string
 	Mode  os.FileMode
 }
 
@@ -34,10 +37,20 @@ func (d *Directory) Run() (result *task.Result, err error) {
 		result, err = d.ensurePresent(result)
 	}
 
-    result.Err = err
-    result.RecordEndTime()
-    result.Log()
-    return
+	result.Err = err
+	result.RecordEndTime()
+	result.Log()
+
+	if d.Owner != "" || d.Group != "" {
+        chown := &file.Chown{
+			Path:      d.Path,
+			Owner:     d.Owner,
+			Group:     d.Group,
+			Recursive: false,
+		}
+        result, err = chown.Run()
+	}
+	return
 }
 
 func (d *Directory) ensurePresent(result *task.Result) (*task.Result, error) {

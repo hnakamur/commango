@@ -6,14 +6,14 @@ import (
 	log "github.com/cihub/seelog"
 	"github.com/hnakamur/commango/modules"
 	//	"github.com/hnakamur/commango/modules/command"
-	//	"github.com/hnakamur/commango/modules/file"
 	"github.com/hnakamur/commango/modules/directory"
+	"github.com/hnakamur/commango/modules/file"
 	"github.com/hnakamur/commango/modules/redhat/group"
 	"github.com/hnakamur/commango/modules/redhat/service"
 	"github.com/hnakamur/commango/modules/redhat/user"
 	"github.com/hnakamur/commango/modules/redhat/yum"
-	"github.com/hnakamur/commango/modules/template"
 	"github.com/hnakamur/commango/modules/shell"
+	"github.com/hnakamur/commango/modules/template"
 	"github.com/hnakamur/commango/task"
 )
 
@@ -123,7 +123,14 @@ func main() {
 		&directory.Directory{
 			State: directory.Present,
 			Path:  "/tmp/foo/bar",
+            Owner: "root",
+            Group: "root",
 			Mode:  0755,
+		},
+		&file.Chmod{
+			Path:      "/tmp/foo",
+			Mode:      0750,
+			Recursive: true,
 		},
 		&template.Template{
 			Path:    "/tmp/foo/bar/baz.conf",

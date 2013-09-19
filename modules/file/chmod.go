@@ -5,36 +5,35 @@ import (
 	"os"
 	"strings"
 
-	"github.com/hnakamur/commango/modules"
-	"github.com/hnakamur/commango/modules/command"
+	"github.com/hnakamur/commango/task"
 	"github.com/hnakamur/commango/stringutil"
 )
 
-func Chmod(path string, mode os.FileMode, recursive bool) (result modules.Result, err error) {
-	oldModes, err := getModes(path, recursive)
+type Chmod struct {
+	Path      string
+	Mode      os.FileMode
+	Recursive bool
+}
+
+func (c *Chmod) Run() (result *task.Result, err error) {
+	oldModes, err := c.getModes()
 	if err != nil {
 		return
 	}
 
-	modeStr := fmt.Sprintf("%o", mode)
+	modeStr := fmt.Sprintf("%o", c.Mode)
 
+	result = task.NewResult("chmod")
 	result.RecordStartTime()
+
+	result.Extra["path"] = c.Path
+	result.Extra["mode"] = modeStr
+	result.Extra["recursive"] = c.Recursive
+	result.Extra["old_modes"] = oldModes
+
 	defer func() {
-		extra := make(map[string]interface{})
-		extra["op"] = "chown"
-		extra["path"] = path
-		extra["mode"] = modeStr
-		extra["old_modes"] = oldModes
-		result.Extra = extra
-
 		result.RecordEndTime()
-
-		if err != nil {
-			result.Err = err
-			result.Failed = true
-		}
 		result.Log()
-		modules.ExitOnError(err)
 	}()
 
 	if len(oldModes) == 1 {
@@ -46,35 +45,36 @@ func Chmod(path string, mode os.FileMode, recursive bool) (result modules.Result
 		}
 	}
 
-	if recursive {
-		result, err = command.CommandNoLog("chmod", "-R", modeStr, path)
+	var args []string
+	if c.Recursive {
+		args = []string{"-R", modeStr, c.Path}
 	} else {
-		result, err = command.CommandNoLog("chmod", modeStr, path)
+		args = []string{modeStr, c.Path}
 	}
-	if err != nil {
-		return
-	}
-
-	result.Changed = true
+	err = result.ExecCommand("chmod", args...)
 	return
 }
 
-func getModes(path string, recursive bool) ([]string, error) {
+func (c *Chmod) getModes() (modes []string, err error) {
+	result := task.NewResult("chmod.get_modes")
+	result.RecordStartTime()
+
+	result.Extra["path"] = c.Path
+	result.Extra["recursive"] = c.Recursive
+
 	var args []string
-	if recursive {
-		args = []string{"find", path, "-printf", "%m\\n"}
+	if c.Recursive {
+		args = []string{c.Path, "-printf", "%m\\n"}
 	} else {
-		args = []string{"find", path, "-printf", "%m\\n", "-quit"}
+		args = []string{c.Path, "-printf", "%m\\n", "-quit"}
 	}
-	result, err := command.CommandNoLog(args...)
-	result.Changed = false
-	if err != nil {
-		result.Err = err
-		result.Failed = true
-	}
-	result.Log()
-	modules.ExitOnError(err)
+	err = result.ExecCommand("find", args...)
 
 	lines := strings.Split(strings.TrimRight(result.Stdout, "\n"), "\n")
-	return stringutil.Uniq(lines), err
+	modes = stringutil.Uniq(lines)
+
+	result.Changed = false
+	result.RecordEndTime()
+	result.Log()
+	return
 }
