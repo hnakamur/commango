@@ -1,11 +1,9 @@
 package group
 
 import (
-	"os/exec"
 	"strconv"
 
 	unixgroup "github.com/hnakamur/commango/os/unix/group"
-	"github.com/hnakamur/commango/os/executil"
 	"github.com/hnakamur/commango/task"
 )
 
@@ -83,14 +81,7 @@ func (g *Group) ensurePresent(result *task.Result) (*task.Result, error) {
 	}
 	args = append(args, g.Name)
 
-	cmd := exec.Command(command, args...)
-    result.Command, err = executil.FormatCommand(cmd)
-	if err != nil {
-		return result, err
-	}
-
-    r, err := executil.Run(cmd)
-    result.SetExecResult(&r, err)
+    err = result.ExecCommand(command, args...)
 	return result, err
 }
 
@@ -110,13 +101,6 @@ func (g *Group) ensureAbsent(result *task.Result) (*task.Result, error) {
 		return result, err
 	}
 
-	cmd := exec.Command("groupdel", g.Name)
-    result.Command, err = executil.FormatCommand(cmd)
-	if err != nil {
-		return result, err
-	}
-
-    r, err := executil.Run(cmd)
-    result.SetExecResult(&r, err)
+    err = result.ExecCommand("groupdel", g.Name)
 	return result, err
 }

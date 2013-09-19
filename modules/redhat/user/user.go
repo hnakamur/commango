@@ -1,14 +1,12 @@
 package user
 
 import (
-	"os/exec"
 	osuser "os/user"
 	"strconv"
 	"strings"
 
 	unixgroup "github.com/hnakamur/commango/os/unix/group"
 	unixuser "github.com/hnakamur/commango/os/unix/user"
-	"github.com/hnakamur/commango/os/executil"
 	"github.com/hnakamur/commango/stringutil"
 	"github.com/hnakamur/commango/task"
 )
@@ -161,14 +159,7 @@ func (u *User) ensurePresent(result *task.Result) (*task.Result, error) {
 	}
 	args = append(args, u.Name)
 
-	cmd := exec.Command(command, args...)
-    result.Command, err = executil.FormatCommand(cmd)
-	if err != nil {
-		return result, err
-	}
-
-    r, err := executil.Run(cmd)
-    result.SetExecResult(&r, err)
+    err = result.ExecCommand(command, args...)
 	return result, err
 }
 
@@ -194,13 +185,6 @@ func (u *User) ensureAbsent(result *task.Result) (*task.Result, error) {
 	}
 	args = append(args, u.Name)
 
-	cmd := exec.Command("userdel", args...)
-    result.Command, err = executil.FormatCommand(cmd)
-	if err != nil {
-		return result, err
-	}
-
-    r, err := executil.Run(cmd)
-    result.SetExecResult(&r, err)
+    err = result.ExecCommand("userdel", args...)
 	return result, err
 }
