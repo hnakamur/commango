@@ -72,3 +72,10 @@ useraddなどの外部コマンドを使う方法で実装しています。
   {"changed":false,"delta":"0:00:00.00001","end":"2013-09-20 01:00:10.05703","failed":false,"module":"service.change_state","name":"ntpd","skipped":true,"start":"2013-09-20 01:00:10.05702","state":"started"}
   {"changed":false,"cmd":"chkconfig ntpd --list","delta":"0:00:00.00224","end":"2013-09-20 01:00:10.05932","failed":false,"module":"service.auto_start","rc":0,"skipped":false,"start":"2013-09-20 01:00:10.05708","stderr":"","stdout":"ntpd           \u00090:off\u00091:off\u00092:on\u00093:on\u00094:on\u00095:on\u00096:off\n"}
   {"changed":false,"delta":"0:00:00.00000","end":"2013-09-20 01:00:10.05942","failed":false,"module":"service.change_auto_start","name":"ntpd","skipped":true,"start":"2013-09-20 01:00:10.05942"}
+
+現在の実装ではコンソールに出力されるログは、以下の色分けをしています。
+
+- 黒: 変更あり
+- 緑: 変更無し
+- 青: スキップ
+- 赤: エラー
