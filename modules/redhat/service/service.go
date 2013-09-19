@@ -38,8 +38,6 @@ func (s *Service) ensureState(state State) (result *task.Result, err error) {
 
 	result = task.NewResult("service.change_state")
 	result.RecordStartTime()
-	defer result.Log()
-	defer result.RecordEndTime()
 
 	result.Extra["name"] = s.Name
 	result.Extra["state"] = string(state)
@@ -67,19 +65,24 @@ func (s *Service) ensureState(state State) (result *task.Result, err error) {
 			op = "start"
 		}
 	}
+
 	if op == "" {
 		result.Skipped = true
-		return
-	}
-
-	err = result.ExecCommand("service", s.Name, op)
+	} else {
+        err = result.ExecCommand("service", s.Name, op)
+        if err != nil {
+            result.Err = err
+            result.Failed = true
+        }
+    }
+    result.RecordEndTime()
+    result.Log()
 	return
 }
 
 func (s *Service) state() (state State, err error) {
 	result := task.NewResult("service.state")
 	result.RecordStartTime()
-	defer result.RecordEndTime()
 
 	err = result.ExecCommand("service", s.Name, "status")
 	result.Extra["name"] = s.Name
@@ -91,9 +94,11 @@ func (s *Service) state() (state State, err error) {
 	} else if result.Rc == 0 {
 		state = STARTED
 	}
+
 	result.Changed = false
+	result.RecordEndTime()
 	result.Log()
-	return state, err
+	return
 }
 
 func (s *Service) ensureAutoStart(enabled bool) (result *task.Result, err error) {
@@ -104,7 +109,6 @@ func (s *Service) ensureAutoStart(enabled bool) (result *task.Result, err error)
 
 	result = task.NewResult("service.change_auto_start")
 	result.RecordStartTime()
-	defer result.RecordEndTime()
 
 	result.Extra["name"] = s.Name
 
@@ -120,20 +124,27 @@ func (s *Service) ensureAutoStart(enabled bool) (result *task.Result, err error)
 	}
 	if op == "" {
 		result.Skipped = true
-		return
-	}
-	err = result.ExecCommand("chkconfig", s.Name, op)
+	} else {
+        err = result.ExecCommand("chkconfig", s.Name, op)
+        if err != nil {
+            result.Err = err
+            result.Failed = true
+        }
+    }
+    result.RecordEndTime()
+    result.Log()
 	return
 }
 
 func (s *Service) autoStartEnabled() (enabled bool, err error) {
 	result := task.NewResult("service.auto_start")
 	result.RecordStartTime()
-	defer result.RecordEndTime()
 
 	err = result.ExecCommand("chkconfig", s.Name, "--list")
 	enabled = strings.Contains(result.Stdout, "\t2:on\t")
+
 	result.Changed = false
+	result.RecordEndTime()
 	result.Log()
 	return
 }
