@@ -4,8 +4,6 @@ import (
 	"os"
 
 	log "github.com/cihub/seelog"
-	"github.com/hnakamur/commango/modules"
-	//	"github.com/hnakamur/commango/modules/command"
 	"github.com/hnakamur/commango/modules/directory"
 	"github.com/hnakamur/commango/modules/file"
 	"github.com/hnakamur/commango/modules/redhat/group"
@@ -109,7 +107,6 @@ keys /etc/ntp/keys
 
 func main() {
 	configLogger()
-	modules.EnableExitOnError()
 
 	queue := task.NewTaskQueue()
 	queue.Add(
