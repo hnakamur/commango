@@ -11,8 +11,8 @@ import (
 	"github.com/hnakamur/commango/modules/redhat/group"
 	"github.com/hnakamur/commango/modules/redhat/service"
 	"github.com/hnakamur/commango/modules/redhat/user"
+	"github.com/hnakamur/commango/modules/redhat/yum"
 	"github.com/hnakamur/commango/modules/template"
-	//	"github.com/hnakamur/commango/modules/redhat/yum"
 	"github.com/hnakamur/commango/modules/shell"
 	"github.com/hnakamur/commango/task"
 )
@@ -146,6 +146,10 @@ func main() {
 			State: group.Present,
 			Name:  "bar",
 			Gid:   group.AUTO_GID,
+		},
+		&yum.Yum{
+			State: yum.Installed,
+			Name:  "ntp",
 		},
 		&service.Service{
 			State:            service.STARTED,
