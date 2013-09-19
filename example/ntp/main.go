@@ -120,8 +120,8 @@ func main() {
 		&directory.Directory{
 			State: directory.Present,
 			Path:  "/tmp/foo/bar",
-            Owner: "root",
-            Group: "root",
+			Owner: "root",
+			Group: "root",
 			Mode:  0755,
 		},
 		&file.Chmod{
