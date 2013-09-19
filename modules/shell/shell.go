@@ -1,8 +1,6 @@
 package shell
 
 import (
-    "os/exec"
-
     "github.com/hnakamur/commango/os/executil"
     "github.com/hnakamur/commango/os/osutil"
     "github.com/hnakamur/commango/task"
@@ -20,9 +18,12 @@ const DEFAULT_SHELL = "/bin/sh"
 func (s *Shell) Run() (result *task.Result, err error) {
     result = task.NewResult("shell")
     result.RecordStartTime()
-    defer result.RecordEndTime()
+    defer func() {
+        result.RecordEndTime()
+        result.Log()
+    }()
 
-    result.Command = s.Command
+    result.Extra["command"] = s.Command
     if s.Chdir != "" {
         result.Extra["chdir"] = s.Chdir
     }
@@ -49,13 +50,6 @@ func (s *Shell) Run() (result *task.Result, err error) {
     } else {
         command = s.Command
     }
-	cmd := exec.Command(shell, "-c", command)
-    result.Extra["command"], err = executil.FormatCommand(cmd)
-	if err != nil {
-		return
-	}
-
-    r, err := executil.Run(cmd)
-    result.SetExecResult(&r, err)
+	err = result.ExecCommand(shell, "-c", command)
     return
 }

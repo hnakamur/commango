@@ -21,19 +21,23 @@ type Directory struct {
 	Mode  os.FileMode
 }
 
-func (d *Directory) Run() (*task.Result, error) {
-	result := task.NewResult("directory")
+func (d *Directory) Run() (result *task.Result, err error) {
+	result = task.NewResult("directory")
 	result.RecordStartTime()
-	defer result.RecordEndTime()
 
 	result.Extra["state"] = string(d.State)
 	result.Extra["path"] = d.Path
 	if d.State == Absent {
-		return d.ensureAbsent(result)
+		result, err = d.ensureAbsent(result)
 	} else {
 		result.Extra["mode"] = fmt.Sprintf("%o", d.Mode)
-		return d.ensurePresent(result)
+		result, err = d.ensurePresent(result)
 	}
+
+    result.Err = err
+    result.RecordEndTime()
+    result.Log()
+    return
 }
 
 func (d *Directory) ensurePresent(result *task.Result) (*task.Result, error) {

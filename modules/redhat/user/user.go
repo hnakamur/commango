@@ -36,15 +36,14 @@ type User struct {
 	RemovesHome   bool
 }
 
-func (u *User) Run() (*task.Result, error) {
-	result := task.NewResult("user")
+func (u *User) Run() (result *task.Result, err error) {
+	result = task.NewResult("user")
 	result.RecordStartTime()
-	defer result.RecordEndTime()
 
 	result.Extra["state"] = string(u.State)
 	result.Extra["name"] = u.Name
 	if u.State == Absent {
-		return u.ensureAbsent(result)
+		result, err = u.ensureAbsent(result)
 	} else {
 		result.Extra["uid"] = u.Uid
 		result.Extra["system"] = u.System
@@ -54,8 +53,13 @@ func (u *User) Run() (*task.Result, error) {
 		result.Extra["comment"] = u.Comment
 		result.Extra["home_dir"] = u.HomeDir
 		result.Extra["shell"] = u.Shell
-		return u.ensurePresent(result)
+		result, err = u.ensurePresent(result)
 	}
+
+    result.Err = err
+    result.RecordEndTime()
+    result.Log()
+    return
 }
 
 func (u *User) ensurePresent(result *task.Result) (*task.Result, error) {

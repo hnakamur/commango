@@ -70,10 +70,6 @@ func (s *Service) ensureState(state State) (result *task.Result, err error) {
 		result.Skipped = true
 	} else {
         err = result.ExecCommand("service", s.Name, op)
-        if err != nil {
-            result.Err = err
-            result.Failed = true
-        }
     }
     result.RecordEndTime()
     result.Log()
@@ -126,10 +122,6 @@ func (s *Service) ensureAutoStart(enabled bool) (result *task.Result, err error)
 		result.Skipped = true
 	} else {
         err = result.ExecCommand("chkconfig", s.Name, op)
-        if err != nil {
-            result.Err = err
-            result.Failed = true
-        }
     }
     result.RecordEndTime()
     result.Log()

@@ -25,20 +25,24 @@ type Group struct {
 	System  bool     // whether or not system account
 }
 
-func (g *Group) Run() (*task.Result, error) {
-	result := task.NewResult("group")
+func (g *Group) Run() (result *task.Result, err error) {
+	result = task.NewResult("group")
 	result.RecordStartTime()
-	defer result.RecordEndTime()
 
 	result.Extra["state"] = string(g.State)
 	result.Extra["name"] = g.Name
 	if g.State == Absent {
-		return g.ensureAbsent(result)
+		result, err = g.ensureAbsent(result)
 	} else {
 		result.Extra["gid"] = g.Gid
 		result.Extra["system"] = g.System
-		return g.ensurePresent(result)
+		result, err = g.ensurePresent(result)
 	}
+
+    result.Err = err
+    result.RecordEndTime()
+    result.Log()
+    return
 }
 
 func (g *Group) ensurePresent(result *task.Result) (*task.Result, error) {

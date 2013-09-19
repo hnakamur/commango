@@ -40,11 +40,7 @@ func (r *TaskQueue) RunOneTask() (*Result, error) {
 		return nil, err
 	}
 	task := item.(Task)
-	result, err := task.Run()
-	if result != nil {
-		result.Log()
-	}
-	return result, err
+	return task.Run()
 }
 
 func (r *TaskQueue) RunLoop() error {

@@ -18,7 +18,11 @@ type Template struct {
 func (t *Template) Run() (result *task.Result, err error) {
 	result = task.NewResult("template")
 	result.RecordStartTime()
-	defer result.RecordEndTime()
+	defer func() {
+        result.Err = err
+        result.RecordEndTime()
+        result.Log()
+    }()
 
 	result.Extra["path"] = t.Path
 	result.Extra["content"] = t.Content
