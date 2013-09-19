@@ -52,6 +52,7 @@ useraddなどの外部コマンドを使う方法で実装しています。
 ------
 
 ::
+
   [vagrant@cent64 commango]$ cd example/ntp
   [vagrant@cent64 ntp]$ go build
   [vagrant@cent64 ntp]$ sudo ./ntp 
