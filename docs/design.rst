@@ -65,6 +65,10 @@ useraddなどの外部コマンドを使う方法で実装しています。
 実行例
 ------
 
+`サンプルソース`_
+
+.. _`サンプルソース`: https://github.com/hnakamur/commango/blob/master/example/ntp/main.go
+
 ::
 
   [vagrant@cent64 commango]$ cd example/ntp
