@@ -21,41 +21,41 @@ const (
 const AutoUID = -1
 
 type User struct {
-	State   State
-	Name    string
-	Uid     int
-	System  bool     // whether or not system account
-	Group   string   // primary group
-	Groups  []string // supplementary groups
-	Appends bool     // whether or not appending supplementary groups
-	Comment string
-	HomeDir string
-	Shell   string
-	RemovesHome   bool
+	State       State
+	Name        string
+	Uid         int
+	System      bool     // whether or not system account
+	Group       string   // primary group
+	Groups      []string // supplementary groups
+	Appends     bool     // whether or not appending supplementary groups
+	Comment     string
+	HomeDir     string
+	Shell       string
+	RemovesHome bool
 }
 
 func (u *User) Run() (result *task.Result, err error) {
 	result, err = task.DoRun(func(result *task.Result) (err error) {
 		result.Module = "user"
-        result.Extra["state"] = string(u.State)
-        result.Extra["name"] = u.Name
-        if u.State == Absent {
-            result.Op = "remove"
-            result, err = u.ensureAbsent(result)
-        } else {
-            result.Extra["uid"] = u.Uid
-            result.Extra["system"] = u.System
-            result.Extra["group"] = u.Group
-            result.Extra["groups"] = u.Groups
-            result.Extra["u.Appends"] = u.Appends
-            result.Extra["comment"] = u.Comment
-            result.Extra["home_dir"] = u.HomeDir
-            result.Extra["shell"] = u.Shell
-            result, err = u.ensurePresent(result)
-        }
-        return
-    })
-    return
+		result.Extra["state"] = string(u.State)
+		result.Extra["name"] = u.Name
+		if u.State == Absent {
+			result.Op = "remove"
+			result, err = u.ensureAbsent(result)
+		} else {
+			result.Extra["uid"] = u.Uid
+			result.Extra["system"] = u.System
+			result.Extra["group"] = u.Group
+			result.Extra["groups"] = u.Groups
+			result.Extra["u.Appends"] = u.Appends
+			result.Extra["comment"] = u.Comment
+			result.Extra["home_dir"] = u.HomeDir
+			result.Extra["shell"] = u.Shell
+			result, err = u.ensurePresent(result)
+		}
+		return
+	})
+	return
 }
 
 func (u *User) ensurePresent(result *task.Result) (*task.Result, error) {
@@ -64,9 +64,9 @@ func (u *User) ensurePresent(result *task.Result) (*task.Result, error) {
 		uidStr = strconv.Itoa(u.Uid)
 	}
 
-    var command string
+	var command string
 	args := make([]string, 0)
-    var err error
+	var err error
 	oldUser, err := unixuser.Lookup(u.Name, nil)
 	if err != nil {
 		if _, ok := err.(osuser.UnknownUserError); !ok {
@@ -74,7 +74,7 @@ func (u *User) ensurePresent(result *task.Result) (*task.Result, error) {
 		}
 
 		result.Op = "create"
-        command = "useradd"
+		command = "useradd"
 	} else {
 		var allGroups []*unixgroup.Group
 		allGroups, err = unixgroup.AllGroups()
@@ -111,26 +111,26 @@ func (u *User) ensurePresent(result *task.Result) (*task.Result, error) {
 			return result, err
 		}
 
-        if uidStr != "" && uidStr != oldUser.Uid {
-            result.Extra["old_uid"], err = strconv.Atoi(oldUser.Uid)
-            if err != nil {
-                return result, err
-            }
-        }
+		if uidStr != "" && uidStr != oldUser.Uid {
+			result.Extra["old_uid"], err = strconv.Atoi(oldUser.Uid)
+			if err != nil {
+				return result, err
+			}
+		}
 
-        if u.Group != "" && u.Group != oldUser.Gid && u.Group != oldGroup.Name {
-            result.Extra["old_gid"], err = strconv.Atoi(oldUser.Gid)
-            if err != nil {
-                return result, err
-            }
-        }
+		if u.Group != "" && u.Group != oldUser.Gid && u.Group != oldGroup.Name {
+			result.Extra["old_gid"], err = strconv.Atoi(oldUser.Gid)
+			if err != nil {
+				return result, err
+			}
+		}
 
-        if groupsWillChange {
-            result.Extra["old_u.Groups"] = oldGroups
-        }
+		if groupsWillChange {
+			result.Extra["old_u.Groups"] = oldGroups
+		}
 
 		result.Op = "modify"
-        command = "usermod"
+		command = "usermod"
 
 		if u.Appends && len(u.Groups) > 0 {
 			args = append(args, "-a")
@@ -159,12 +159,12 @@ func (u *User) ensurePresent(result *task.Result) (*task.Result, error) {
 	}
 	args = append(args, u.Name)
 
-    err = result.ExecCommand(command, args...)
+	err = result.ExecCommand(command, args...)
 	return result, err
 }
 
 func (u *User) ensureAbsent(result *task.Result) (*task.Result, error) {
-    var err error
+	var err error
 	oldUser, err := unixuser.Lookup(u.Name, nil)
 	if err != nil {
 		if _, ok := err.(osuser.UnknownUserError); ok {
@@ -179,12 +179,12 @@ func (u *User) ensureAbsent(result *task.Result) (*task.Result, error) {
 		return result, err
 	}
 
-    args := make([]string, 0)
+	args := make([]string, 0)
 	if u.RemovesHome {
 		args = append(args, "-r")
 	}
 	args = append(args, u.Name)
 
-    err = result.ExecCommand("userdel", args...)
+	err = result.ExecCommand("userdel", args...)
 	return result, err
 }
