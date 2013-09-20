@@ -14,7 +14,7 @@ const (
 	Absent  = State("absent")
 )
 
-const AUTO_GID = -1
+const AutoGID = -1
 
 type Group struct {
 	State   State
@@ -43,7 +43,7 @@ func (g *Group) Run() (result *task.Result, err error) {
 
 func (g *Group) ensurePresent(result *task.Result) (*task.Result, error) {
 	var gidStr string
-	if g.Gid != AUTO_GID {
+	if g.Gid != AutoGID {
 		gidStr = strconv.Itoa(g.Gid)
 	}
 

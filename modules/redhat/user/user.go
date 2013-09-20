@@ -18,7 +18,7 @@ const (
 	Absent  = State("absent")
 )
 
-const AUTO_UID = -1
+const AutoUID = -1
 
 type User struct {
 	State   State
@@ -60,7 +60,7 @@ func (u *User) Run() (result *task.Result, err error) {
 
 func (u *User) ensurePresent(result *task.Result) (*task.Result, error) {
 	var uidStr string
-	if u.Uid != AUTO_UID {
+	if u.Uid != AutoUID {
 		uidStr = strconv.Itoa(u.Uid)
 	}
 

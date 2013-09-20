@@ -9,10 +9,10 @@ import (
 type State string
 
 const (
-	STARTED   = State("started")
-	STOPPED   = State("stopped")
-	RESTARTED = State("restarted")
-	RELOADED  = State("reloaded")
+	Started   = State("started")
+	Stopped   = State("stopped")
+	Restarted = State("restarted")
+	Reloaded  = State("reloaded")
 )
 
 type Service struct {
@@ -44,22 +44,22 @@ func (s *Service) ensureState(state State) (result *task.Result, err error) {
 
 		var op string
 		switch s.State {
-		case STARTED:
-			if oldState == STOPPED {
+		case Started:
+			if oldState == Stopped {
 				op = "start"
 			}
-		case STOPPED:
-			if oldState == STARTED {
+		case Stopped:
+			if oldState == Started {
 				op = "stop"
 			}
-		case RESTARTED:
-			if oldState == STARTED {
+		case Restarted:
+			if oldState == Started {
 				op = "restart"
 			} else {
 				op = "start"
 			}
-		case RELOADED:
-			if oldState == STARTED {
+		case Reloaded:
+			if oldState == Started {
 				op = "reload"
 			} else {
 				op = "start"
@@ -84,12 +84,12 @@ func (s *Service) state() (state State, err error) {
 		err = result.ExecCommand("service", s.Name, "status")
 		result.Changed = false
 		if result.Rc == 3 {
-			state = STOPPED
+			state = Stopped
 			result.Err = nil
 			err = nil
 			result.Failed = false
 		} else if result.Rc == 0 {
-			state = STARTED
+			state = Started
 		}
 		return err
 	})

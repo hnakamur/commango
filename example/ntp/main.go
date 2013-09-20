@@ -144,19 +144,19 @@ func main() {
 		&user.User{
 			State: user.Present,
 			Name:  "foo",
-			Uid:   user.AUTO_UID,
+			Uid:   user.AutoUID,
 		},
 		&group.Group{
 			State: group.Present,
 			Name:  "bar",
-			Gid:   group.AUTO_GID,
+			Gid:   group.AutoGID,
 		},
 		&yum.Yum{
 			State: yum.Installed,
 			Name:  "ntp",
 		},
 		&service.Service{
-			State:            service.STARTED,
+			State:            service.Started,
 			Name:             "ntpd",
 			AutoStartEnabled: true,
 		},
