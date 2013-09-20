@@ -31,11 +31,11 @@ func DoRun(fn func(*Result) error) (result *Result, err error) {
 	result = &Result{
 		Extra: make(map[string]interface{}),
 	}
-	result.RecordStartTime()
+	result.StartTime = time.Now()
 	err = fn(result)
 	result.Err = err
-	result.RecordEndTime()
-	result.Log()
+	result.EndTime = time.Now()
+	result.log()
 	return
 }
 
@@ -48,23 +48,11 @@ func (r *Result) ExecCommand(command string, args ...string) error {
 	}
 
 	runResult, err := executil.Run(cmd)
-	r.SetExecResult(&runResult, err)
+	r.setExecResult(&runResult, err)
 	return err
 }
 
-func (r *Result) RecordStartTime() {
-	r.StartTime = time.Now()
-}
-
-func (r *Result) RecordEndTime() {
-	r.EndTime = time.Now()
-}
-
-func (r *Result) Delta() time.Duration {
-	return r.EndTime.Sub(r.StartTime)
-}
-
-func (r *Result) SetExecResult(result *executil.Result, err error) {
+func (r *Result) setExecResult(result *executil.Result, err error) {
 	r.Err = err
 	if err == nil || executil.IsExitError(err) {
 		r.Rc = result.Rc
@@ -78,7 +66,7 @@ func (r *Result) SetExecResult(result *executil.Result, err error) {
 	r.Changed = true
 }
 
-func (r *Result) Log() {
+func (r *Result) log() {
 	json, err := jsonutil.Encode(r)
 	if err != nil {
 		log.Error(err)
@@ -95,7 +83,11 @@ func (r *Result) Log() {
 	}
 }
 
-func (r *Result) ToJSON() map[string]interface{} {
+func (r Result) MarshalJSON() ([]byte, error) {
+	return json.Marshal(r.toJSON())
+}
+
+func (r *Result) toJSON() map[string]interface{} {
 	obj := make(map[string]interface{})
 	if r.Extra != nil {
 		for k, v := range r.Extra {
@@ -110,9 +102,9 @@ func (r *Result) ToJSON() map[string]interface{} {
 	if r.Err != nil {
 		obj["err"] = r.Err.Error()
 	}
-	obj["start"] = FormatTime(r.StartTime)
-	obj["end"] = FormatTime(r.EndTime)
-	obj["delta"] = FormatDuration(r.Delta())
+	obj["start"] = formatTime(r.StartTime)
+	obj["end"] = formatTime(r.EndTime)
+	obj["delta"] = formatDuration(r.delta())
 	if r.Command != "" {
 		obj["cmd"] = r.Command
 		obj["rc"] = r.Rc
@@ -122,17 +114,17 @@ func (r *Result) ToJSON() map[string]interface{} {
 	return obj
 }
 
-func (r Result) MarshalJSON() ([]byte, error) {
-	return json.Marshal(r.ToJSON())
+func (r *Result) delta() time.Duration {
+	return r.EndTime.Sub(r.StartTime)
 }
 
-const TIME_FORMAT = "2006-01-02 15:04:05.00000"
+const timeFormat = "2006-01-02 15:04:05.00000"
 
-func FormatTime(t time.Time) string {
-	return t.Format(TIME_FORMAT)
+func formatTime(t time.Time) string {
+	return t.Format(timeFormat)
 }
 
-func FormatDuration(d time.Duration) string {
+func formatDuration(d time.Duration) string {
 	sign := ""
 	if d < 0 {
 		d = -d
