@@ -16,40 +16,37 @@ type Shell struct {
 const DEFAULT_SHELL = "/bin/sh"
 
 func (s *Shell) Run() (result *task.Result, err error) {
-    result = task.NewResult("shell")
-    result.RecordStartTime()
-    defer func() {
-        result.RecordEndTime()
-        result.Log()
-    }()
+	result, err = task.DoRun(func(result *task.Result) (err error) {
+		result.Module = "shell"
+        result.Extra["command"] = s.Command
+        if s.Chdir != "" {
+            result.Extra["chdir"] = s.Chdir
+        }
+        if s.Creates != "" {
+            result.Extra["creates"] = s.Creates
+        }
 
-    result.Extra["command"] = s.Command
-    if s.Chdir != "" {
-        result.Extra["chdir"] = s.Chdir
-    }
-    if s.Creates != "" {
-        result.Extra["creates"] = s.Creates
-    }
+        var shell string
+        if s.Shell == "" {
+            shell = DEFAULT_SHELL
+        } else {
+            shell = s.Shell
+        }
+        result.Extra["shell"] = shell
 
-    var shell string
-    if s.Shell == "" {
-        shell = DEFAULT_SHELL
-    } else {
-        shell = s.Shell
-    }
-    result.Extra["shell"] = shell
+        if s.Creates != "" && osutil.Exists(s.Creates) {
+            result.Skipped = true
+            return
+        }
 
-    if s.Creates != "" && osutil.Exists(s.Creates) {
-        result.Skipped = true
+        var command string
+        if s.Chdir != "" {
+            command = "cd " + executil.QuoteWord(s.Chdir) + "; " + s.Command
+        } else {
+            command = s.Command
+        }
+        err = result.ExecCommand(shell, "-c", command)
         return
-    }
-
-    var command string
-    if s.Chdir != "" {
-        command = "cd " + executil.QuoteWord(s.Chdir) + "; " + s.Command
-    } else {
-        command = s.Command
-    }
-	err = result.ExecCommand(shell, "-c", command)
+    })
     return
 }

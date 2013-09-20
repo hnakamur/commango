@@ -36,64 +36,63 @@ func (s *Service) ensureState(state State) (result *task.Result, err error) {
 		return
 	}
 
-	result = task.NewResult("service.change_state")
-	result.RecordStartTime()
+	result, err = task.DoRun(func(result *task.Result) error {
+		result.Module = "service"
+		result.Op = "change_state"
+		result.Extra["name"] = s.Name
+		result.Extra["state"] = string(state)
 
-	result.Extra["name"] = s.Name
-	result.Extra["state"] = string(state)
+		var op string
+		switch s.State {
+		case STARTED:
+			if oldState == STOPPED {
+				op = "start"
+			}
+		case STOPPED:
+			if oldState == STARTED {
+				op = "stop"
+			}
+		case RESTARTED:
+			if oldState == STARTED {
+				op = "restart"
+			} else {
+				op = "start"
+			}
+		case RELOADED:
+			if oldState == STARTED {
+				op = "reload"
+			} else {
+				op = "start"
+			}
+		}
 
-	var op string
-	switch s.State {
-	case STARTED:
-		if oldState == STOPPED {
-			op = "start"
-		}
-	case STOPPED:
-		if oldState == STARTED {
-			op = "stop"
-		}
-	case RESTARTED:
-		if oldState == STARTED {
-			op = "restart"
+		if op == "" {
+			result.Skipped = true
+			return nil
 		} else {
-			op = "start"
+			return result.ExecCommand("service", s.Name, op)
 		}
-	case RELOADED:
-		if oldState == STARTED {
-			op = "reload"
-		} else {
-			op = "start"
-		}
-	}
-
-	if op == "" {
-		result.Skipped = true
-	} else {
-        err = result.ExecCommand("service", s.Name, op)
-    }
-    result.RecordEndTime()
-    result.Log()
+	})
 	return
 }
 
 func (s *Service) state() (state State, err error) {
-	result := task.NewResult("service.state")
-	result.RecordStartTime()
-
-	err = result.ExecCommand("service", s.Name, "status")
-	result.Extra["name"] = s.Name
-	if result.Rc == 3 {
-		state = STOPPED
-		result.Err = nil
-		err = nil
-		result.Failed = false
-	} else if result.Rc == 0 {
-		state = STARTED
-	}
-
-	result.Changed = false
-	result.RecordEndTime()
-	result.Log()
+	_, err = task.DoRun(func(result *task.Result) error {
+		result.Module = "service"
+		result.Op = "state"
+		result.Extra["name"] = s.Name
+		err = result.ExecCommand("service", s.Name, "status")
+		result.Changed = false
+		if result.Rc == 3 {
+			state = STOPPED
+			result.Err = nil
+			err = nil
+			result.Failed = false
+		} else if result.Rc == 0 {
+			state = STARTED
+		}
+		return err
+	})
 	return
 }
 
@@ -103,40 +102,40 @@ func (s *Service) ensureAutoStart(enabled bool) (result *task.Result, err error)
 		return
 	}
 
-	result = task.NewResult("service.change_auto_start")
-	result.RecordStartTime()
+	result, err = task.DoRun(func(result *task.Result) error {
+		result.Module = "service"
+		result.Op = "auto_start"
+		result.Extra["name"] = s.Name
 
-	result.Extra["name"] = s.Name
-
-	var op string
-	if enabled {
-		if !oldEnabled {
-			op = "on"
+		var op string
+		if enabled {
+			if !oldEnabled {
+				op = "on"
+			}
+		} else {
+			if oldEnabled {
+				op = "off"
+			}
 		}
-	} else {
-		if oldEnabled {
-			op = "off"
+		if op == "" {
+			result.Skipped = true
+			return nil
+		} else {
+			return result.ExecCommand("chkconfig", s.Name, op)
 		}
-	}
-	if op == "" {
-		result.Skipped = true
-	} else {
-        err = result.ExecCommand("chkconfig", s.Name, op)
-    }
-    result.RecordEndTime()
-    result.Log()
+	})
 	return
 }
 
 func (s *Service) autoStartEnabled() (enabled bool, err error) {
-	result := task.NewResult("service.auto_start")
-	result.RecordStartTime()
-
-	err = result.ExecCommand("chkconfig", s.Name, "--list")
+	result, err := task.DoRun(func(result *task.Result) error {
+		result.Module = "service"
+		result.Op = "check_auto_start"
+		result.Extra["name"] = s.Name
+		err := result.ExecCommand("chkconfig", s.Name, "--list")
+		result.Changed = false
+		return err
+	})
 	enabled = strings.Contains(result.Stdout, "\t2:on\t")
-
-	result.Changed = false
-	result.RecordEndTime()
-	result.Log()
 	return
 }

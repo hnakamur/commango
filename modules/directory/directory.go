@@ -25,21 +25,20 @@ type Directory struct {
 }
 
 func (d *Directory) Run() (result *task.Result, err error) {
-	result = task.NewResult("directory")
-	result.RecordStartTime()
-
-	result.Extra["state"] = string(d.State)
-	result.Extra["path"] = d.Path
-	if d.State == Absent {
-		result, err = d.ensureAbsent(result)
-	} else {
-		result.Extra["mode"] = fmt.Sprintf("%o", d.Mode)
-		result, err = d.ensurePresent(result)
-	}
-
-	result.Err = err
-	result.RecordEndTime()
-	result.Log()
+	result, err = task.DoRun(func(result *task.Result) (err error) {
+		result.Module = "directory"
+        result.Extra["state"] = string(d.State)
+        result.Extra["path"] = d.Path
+        if d.State == Absent {
+            result.Op = "remove"
+            result, err = d.ensureAbsent(result)
+        } else {
+            result.Op = "create"
+            result.Extra["mode"] = fmt.Sprintf("%o", d.Mode)
+            result, err = d.ensurePresent(result)
+        }
+        return
+    })
 
 	if d.Owner != "" || d.Group != "" {
         chown := &file.Chown{

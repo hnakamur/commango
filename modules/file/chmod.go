@@ -21,60 +21,55 @@ func (c *Chmod) Run() (result *task.Result, err error) {
 		return
 	}
 
-	modeStr := fmt.Sprintf("%o", c.Mode)
+	result, err = task.DoRun(func(result *task.Result) (err error) {
+		result.Module = "chmod"
+		result.Op = "chmod"
+        modeStr := fmt.Sprintf("%o", c.Mode)
+        result.Extra["path"] = c.Path
+        result.Extra["mode"] = modeStr
+        result.Extra["recursive"] = c.Recursive
+        result.Extra["old_modes"] = oldModes
 
-	result = task.NewResult("chmod")
-	result.RecordStartTime()
+        if len(oldModes) == 1 {
+            oldMode := oldModes[0]
 
-	result.Extra["path"] = c.Path
-	result.Extra["mode"] = modeStr
-	result.Extra["recursive"] = c.Recursive
-	result.Extra["old_modes"] = oldModes
+            if modeStr == oldMode {
+                result.Skipped = true
+                return
+            }
+        }
 
-	defer func() {
-		result.RecordEndTime()
-		result.Log()
-	}()
-
-	if len(oldModes) == 1 {
-		oldMode := oldModes[0]
-
-		if modeStr == oldMode {
-			result.Skipped = true
-			return
-		}
-	}
-
-	var args []string
-	if c.Recursive {
-		args = []string{"-R", modeStr, c.Path}
-	} else {
-		args = []string{modeStr, c.Path}
-	}
-	err = result.ExecCommand("chmod", args...)
-	return
+        var args []string
+        if c.Recursive {
+            args = []string{"-R", modeStr, c.Path}
+        } else {
+            args = []string{modeStr, c.Path}
+        }
+        err = result.ExecCommand("chmod", args...)
+        return
+    })
+    return
 }
 
 func (c *Chmod) getModes() (modes []string, err error) {
-	result := task.NewResult("chmod.get_modes")
-	result.RecordStartTime()
+	_, err = task.DoRun(func(result *task.Result) (err error) {
+		result.Module = "chmod"
+		result.Op = "check_modes"
+        result.Extra["path"] = c.Path
+        result.Extra["recursive"] = c.Recursive
 
-	result.Extra["path"] = c.Path
-	result.Extra["recursive"] = c.Recursive
+        var args []string
+        if c.Recursive {
+            args = []string{c.Path, "-printf", "%m\\n"}
+        } else {
+            args = []string{c.Path, "-printf", "%m\\n", "-quit"}
+        }
+        err = result.ExecCommand("find", args...)
+        result.Changed = false
 
-	var args []string
-	if c.Recursive {
-		args = []string{c.Path, "-printf", "%m\\n"}
-	} else {
-		args = []string{c.Path, "-printf", "%m\\n", "-quit"}
-	}
-	err = result.ExecCommand("find", args...)
-
-	lines := strings.Split(strings.TrimRight(result.Stdout, "\n"), "\n")
-	modes = stringutil.Uniq(lines)
-
-	result.Changed = false
-	result.RecordEndTime()
-	result.Log()
-	return
+        lines := strings.Split(strings.TrimRight(result.Stdout, "\n"), "\n")
+        modes = stringutil.Uniq(lines)
+        return
+    })
+    return
 }

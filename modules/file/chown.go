@@ -20,67 +20,63 @@ func (c *Chown) Run() (result *task.Result, err error) {
 		return
 	}
 
-	result = task.NewResult("chown")
-	result.RecordStartTime()
+	result, err = task.DoRun(func(result *task.Result) (err error) {
+		result.Module = "chown"
+		result.Op = "chown"
+        result.Extra["path"] = c.Path
+        result.Extra["owner"] = c.Owner
+        result.Extra["group"] = c.Group
+        result.Extra["recursive"] = c.Recursive
 
-	result.Extra["path"] = c.Path
-	result.Extra["owner"] = c.Owner
-	result.Extra["group"] = c.Group
-	result.Extra["recursive"] = c.Recursive
+        if len(oldOwners) == 1 {
+            index := strings.Index(oldOwners[0], ":")
+            oldOwner := oldOwners[0][:index]
+            oldGroup := oldOwners[0][index+1:]
 
-	defer func() {
-		result.RecordEndTime()
-		result.Log()
-	}()
+            if (c.Owner == "" || c.Owner == oldOwner) &&
+                (c.Group == "" || c.Group == oldGroup) {
+                result.Skipped = true
+                return
+            }
+        }
 
-	if len(oldOwners) == 1 {
-		index := strings.Index(oldOwners[0], ":")
-		oldOwner := oldOwners[0][:index]
-		oldGroup := oldOwners[0][index+1:]
-
-		if (c.Owner == "" || c.Owner == oldOwner) &&
-			(c.Group == "" || c.Group == oldGroup) {
-			result.Skipped = true
-			return
-		}
-	}
-
-	var owner string
-	if c.Group != "" {
-		owner = c.Owner + ":" + c.Group
-	} else {
-		owner = c.Owner
-	}
-	var args []string
-	if c.Recursive {
-		args = []string{"-R", owner, c.Path}
-	} else {
-		args = []string{owner, c.Path}
-	}
-	err = result.ExecCommand("chown", args...)
-	return
+        var owner string
+        if c.Group != "" {
+            owner = c.Owner + ":" + c.Group
+        } else {
+            owner = c.Owner
+        }
+        var args []string
+        if c.Recursive {
+            args = []string{"-R", owner, c.Path}
+        } else {
+            args = []string{owner, c.Path}
+        }
+        err = result.ExecCommand("chown", args...)
+        return
+    })
+    return
 }
 
 func (c *Chown) getOwners() (owners []string, err error) {
-	result := task.NewResult("chown.get_owners")
-	result.RecordStartTime()
+	_, err = task.DoRun(func(result *task.Result) (err error) {
+		result.Module = "chown"
+		result.Op = "check_owners"
+        result.Extra["path"] = c.Path
+        result.Extra["recursive"] = c.Recursive
 
-	result.Extra["path"] = c.Path
-	result.Extra["recursive"] = c.Recursive
+        var args []string
+        if c.Recursive {
+            args = []string{c.Path, "-printf", "%u:%g\\n", "-quit"}
+        } else {
+            args = []string{c.Path, "-printf", "%u:%g\\n"}
+        }
+        err = result.ExecCommand("find", args...)
+        result.Changed = false
 
-	var args []string
-	if c.Recursive {
-		args = []string{c.Path, "-printf", "%u:%g\\n", "-quit"}
-	} else {
-		args = []string{c.Path, "-printf", "%u:%g\\n"}
-	}
-	err = result.ExecCommand("find", args...)
-
-	lines := strings.Split(strings.TrimRight(result.Stdout, "\n"), "\n")
-	owners = stringutil.Uniq(lines)
-
-	result.Changed = false
-	result.RecordEndTime()
-	result.Log()
+        lines := strings.Split(strings.TrimRight(result.Stdout, "\n"), "\n")
+        owners = stringutil.Uniq(lines)
+        return
+    })
 	return
 }

@@ -35,28 +35,26 @@ type User struct {
 }
 
 func (u *User) Run() (result *task.Result, err error) {
-	result = task.NewResult("user")
-	result.RecordStartTime()
-
-	result.Extra["state"] = string(u.State)
-	result.Extra["name"] = u.Name
-	if u.State == Absent {
-		result, err = u.ensureAbsent(result)
-	} else {
-		result.Extra["uid"] = u.Uid
-		result.Extra["system"] = u.System
-		result.Extra["group"] = u.Group
-		result.Extra["groups"] = u.Groups
-		result.Extra["u.Appends"] = u.Appends
-		result.Extra["comment"] = u.Comment
-		result.Extra["home_dir"] = u.HomeDir
-		result.Extra["shell"] = u.Shell
-		result, err = u.ensurePresent(result)
-	}
-
-    result.Err = err
-    result.RecordEndTime()
-    result.Log()
+	result, err = task.DoRun(func(result *task.Result) (err error) {
+		result.Module = "user"
+        result.Extra["state"] = string(u.State)
+        result.Extra["name"] = u.Name
+        if u.State == Absent {
+            result.Op = "remove"
+            result, err = u.ensureAbsent(result)
+        } else {
+            result.Extra["uid"] = u.Uid
+            result.Extra["system"] = u.System
+            result.Extra["group"] = u.Group
+            result.Extra["groups"] = u.Groups
+            result.Extra["u.Appends"] = u.Appends
+            result.Extra["comment"] = u.Comment
+            result.Extra["home_dir"] = u.HomeDir
+            result.Extra["shell"] = u.Shell
+            result, err = u.ensurePresent(result)
+        }
+        return
+    })
     return
 }
 
@@ -75,6 +73,7 @@ func (u *User) ensurePresent(result *task.Result) (*task.Result, error) {
 			return result, err
 		}
 
+		result.Op = "create"
         command = "useradd"
 	} else {
 		var allGroups []*unixgroup.Group
@@ -130,6 +129,7 @@ func (u *User) ensurePresent(result *task.Result) (*task.Result, error) {
             result.Extra["old_u.Groups"] = oldGroups
         }
 
+		result.Op = "modify"
         command = "usermod"
 
 		if u.Appends && len(u.Groups) > 0 {

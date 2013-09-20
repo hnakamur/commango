@@ -24,22 +24,20 @@ type Group struct {
 }
 
 func (g *Group) Run() (result *task.Result, err error) {
-	result = task.NewResult("group")
-	result.RecordStartTime()
-
-	result.Extra["state"] = string(g.State)
-	result.Extra["name"] = g.Name
-	if g.State == Absent {
-		result, err = g.ensureAbsent(result)
-	} else {
-		result.Extra["gid"] = g.Gid
-		result.Extra["system"] = g.System
-		result, err = g.ensurePresent(result)
-	}
-
-    result.Err = err
-    result.RecordEndTime()
-    result.Log()
+	result, err = task.DoRun(func(result *task.Result) (err error) {
+		result.Module = "group"
+        result.Extra["state"] = string(g.State)
+        result.Extra["name"] = g.Name
+        if g.State == Absent {
+            result.Op = "remove"
+            result, err = g.ensureAbsent(result)
+        } else {
+            result.Extra["gid"] = g.Gid
+            result.Extra["system"] = g.System
+            result, err = g.ensurePresent(result)
+        }
+        return
+    })
     return
 }
 
@@ -57,6 +55,7 @@ func (g *Group) ensurePresent(result *task.Result) (*task.Result, error) {
 			return result, err
 		}
 
+        result.Op = "create"
 		command = "groupadd"
 	} else {
 		if gidStr == "" || gidStr == oldGroup.Gid {
@@ -69,6 +68,7 @@ func (g *Group) ensurePresent(result *task.Result) (*task.Result, error) {
 			return result, err
 		}
 
+        result.Op = "modify"
 		command = "groupmod"
 	}
 

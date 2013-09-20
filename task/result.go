@@ -13,6 +13,7 @@ import (
 
 type Result struct {
 	Module    string
+	Op        string
 	Skipped   bool
 	Failed    bool
 	Changed   bool
@@ -26,11 +27,16 @@ type Result struct {
 	Extra     map[string]interface{}
 }
 
-func NewResult(module string) *Result {
-	return &Result{
-		Module: module,
-		Extra:  make(map[string]interface{}),
+func DoRun(fn func(*Result) error) (result *Result, err error) {
+	result = &Result{
+		Extra: make(map[string]interface{}),
 	}
+	result.RecordStartTime()
+	err = fn(result)
+	result.Err = err
+	result.RecordEndTime()
+	result.Log()
+	return
 }
 
 func (r *Result) ExecCommand(command string, args ...string) error {
@@ -97,6 +103,7 @@ func (r *Result) ToJSON() map[string]interface{} {
 		}
 	}
 	obj["module"] = r.Module
+	obj["op"] = r.Op
 	obj["skipped"] = r.Skipped
 	obj["failed"] = r.Failed
 	obj["changed"] = r.Changed
