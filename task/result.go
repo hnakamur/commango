@@ -106,7 +106,7 @@ func (r *Result) toJSON() map[string]interface{} {
 	obj["end"] = formatTime(r.EndTime)
 	obj["delta"] = formatDuration(r.delta())
 	if r.Command != "" {
-		obj["cmd"] = r.Command
+		obj["command"] = r.Command
 		obj["rc"] = r.Rc
 		obj["stdout"] = r.Stdout
 		obj["stderr"] = r.Stderr

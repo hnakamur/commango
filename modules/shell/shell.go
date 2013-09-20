@@ -18,7 +18,7 @@ const DEFAULT_SHELL = "/bin/sh"
 func (s *Shell) Run() (result *task.Result, err error) {
 	result, err = task.DoRun(func(result *task.Result) (err error) {
 		result.Module = "shell"
-		result.Extra["command"] = s.Command
+		result.Extra["cmd"] = s.Command
 		if s.Chdir != "" {
 			result.Extra["chdir"] = s.Chdir
 		}
