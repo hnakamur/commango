@@ -12,11 +12,11 @@ type TaskQueue struct {
 	queue *ringbuffer.RingBuffer
 }
 
-const QUEUE_SIZE = 64
+const queueSize = 64
 
 func NewTaskQueue() *TaskQueue {
 	return &TaskQueue{
-		queue: ringbuffer.NewRingBuffer(QUEUE_SIZE),
+		queue: ringbuffer.NewRingBuffer(queueSize),
 	}
 }
 
